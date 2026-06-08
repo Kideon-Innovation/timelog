@@ -87,22 +87,22 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
     dp.value=d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());
     dp.dispatchEvent(new Event('change')); });
   await sleep(300);
-  // scroll to the morning so blocks are visible
+  // scroll to the morning so blocks are visible. Light is the default theme.
   await page.evaluate(()=>document.getElementById('calWrap').scrollTo({top:9*116-70}));
   await sleep(300);
-  await shot(page,'desktop-dark.png');
+  await shot(page,'desktop-light.png');
 
-  // ping modal
+  // ping modal (light)
   await page.evaluate(()=>document.getElementById('logNowBtn').click());
   await sleep(400);
   await shot(page,'desktop-ping.png');
   await page.keyboard.press('Escape');
 
-  // light theme (themeBtn lives in the overflow menu → toggle programmatically)
+  // dark theme (themeBtn lives in the overflow menu → toggle programmatically)
   await page.evaluate(()=>document.getElementById('themeBtn').click()); await sleep(300);
   await page.evaluate(()=>document.getElementById('calWrap').scrollTo({top:9*116-70}));
   await sleep(200);
-  await shot(page,'desktop-light.png');
+  await shot(page,'desktop-dark.png');
 
   // PWA assertions
   const checks = await page.evaluate(async ()=>{
@@ -121,7 +121,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
   await sleep(700);
   await page.evaluate(()=>document.getElementById('calWrap').scrollTo({top:8*116-60}));
   await sleep(300);
-  await shot(page,'mobile-dark.png');
+  await shot(page,'mobile-light.png');   // light is the default theme
 
   await page.evaluate(()=>document.getElementById('logNowBtn').click());
   await sleep(400);
@@ -132,6 +132,13 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
   await page.evaluate(()=>document.getElementById('installBtn').click());
   await sleep(300);
   await shot(page,'mobile-install.png');
+  await page.keyboard.press('Escape'); await sleep(200);
+
+  // dark theme variant
+  await page.evaluate(()=>document.getElementById('themeBtn').click()); await sleep(300);
+  await page.evaluate(()=>document.getElementById('calWrap').scrollTo({top:8*116-60}));
+  await sleep(200);
+  await shot(page,'mobile-dark.png');
   await ctx.close();
 }
 

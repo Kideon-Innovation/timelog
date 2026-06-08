@@ -7,7 +7,7 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0b0c0f" id="metaTheme">
+<meta name="theme-color" content="#faf9f7" id="metaTheme">
 <meta name="color-scheme" content="dark light">
 <meta name="application-name" content="TimeLog">
 <meta name="description" content="Passive Zeiterfassung per Ping — pingt dich in festen Abständen und baut deinen Tag als Blöcke auf. Offline, ohne Login, Export als Excel.">
@@ -23,51 +23,55 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="vendor/xlsx.full.min.js"></script>
 <style>
+  /* Kideon light theme — default. Off-White / Navy / Copper. */
   :root{
-    --bg:#0b0c0f;
-    --bg-raised:#171922;
-    --bg-sunken:#06070a;
-    --line:#3a3d49;
-    --line-soft:#262932;
-    --text:#f6f7fb;
-    --text-dim:#c2c7d4;
-    --text-faint:#878d9d;
-    --amber:#ffb224;
-    --amber-soft:#ffb22433;
-    --now:#37d6ff;
+    --bg:#faf9f7;
+    --bg-raised:#ffffff;
+    --bg-sunken:#f3f1ed;
+    --line:#e5e2dc;
+    --line-soft:#eeedea;
+    --text:#0f2137;
+    --text-dim:#4d5f73;
+    --text-faint:#7a8a9a;
+    --accent:#c49a6c;
+    --accent-soft:rgba(196,154,108,.14);
+    --on-accent:#0f2137;
+    --now:#dc2626;
     --hour:56px;        /* px per hour */
     --slot:14px;        /* px per 15min (=hour/4) */
     --radius:10px;
+    --shadow:0 12px 40px rgba(15,33,55,.08), 0 4px 12px rgba(15,33,55,.04);
+    --glow:#ffffff;
+    --block-lbl:#0f2137;
+    --block-lbl-shadow:none;
+    --grain:.02;
+    --scrim:rgba(15,33,55,.45);
+    color-scheme:light;
+  }
+  /* Kideon dark theme — navy-based, copper accent. */
+  html[data-theme="dark"]{
+    --bg:#0f2137;
+    --bg-raised:#1a3352;
+    --bg-sunken:#0a1828;
+    --line:#2b4a6e;
+    --line-soft:#1f3a59;
+    --text:#f3f5f8;
+    --text-dim:#aebed0;
+    --text-faint:#7a8ca0;
+    --accent:#c49a6c;
+    --accent-soft:rgba(196,154,108,.18);
+    --on-accent:#0f2137;
+    --now:#ff6b6b;
     --shadow:0 8px 30px rgba(0,0,0,.45);
-    --glow:#1c2030;
+    --glow:#1a3352;
     --block-lbl:#fff;
     --block-lbl-shadow:0 1px 2px #00000099;
-    --grain:.035;
-    --scrim:#0a0806cc;
+    --grain:.03;
+    --scrim:rgba(6,12,20,.7);
     color-scheme:dark;
-  }
-  html[data-theme="light"]{
-    --bg:#eceef3;
-    --bg-raised:#ffffff;
-    --bg-sunken:#e0e3ea;
-    --line:#b9bfca;
-    --line-soft:#d6dae1;
-    --text:#14161c;
-    --text-dim:#474d59;
-    --text-faint:#828995;
-    --amber:#c97a00;
-    --amber-soft:#c97a0026;
-    --now:#0091c2;
-    --shadow:0 8px 30px rgba(40,50,70,.18);
-    --glow:#ffffff;
-    --block-lbl:#14161c;
-    --block-lbl-shadow:none;
-    --grain:.025;
-    --scrim:#2a2f3aa8;
-    color-scheme:light;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -76,7 +80,7 @@
       radial-gradient(1200px 600px at 80% -10%, var(--glow) 0%, transparent 60%),
       var(--bg);
     color:var(--text);
-    font-family:'IBM Plex Sans',sans-serif;
+    font-family:'DM Sans',sans-serif;
     font-size:14px;
     line-height:1.4;
     overflow:hidden;
@@ -115,8 +119,8 @@
     font-family:'Instrument Serif',serif;font-weight:400;font-size:30px;
     letter-spacing:.3px;line-height:1;
   }
-  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--amber);
-    box-shadow:0 0 12px var(--amber);transform:translateY(-3px)}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 12px var(--accent);transform:translateY(-3px)}
   .brand small{color:var(--text-faint);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 
   .clock{display:flex;flex-direction:column;line-height:1.15}
@@ -130,7 +134,7 @@
   .countdown .ring{position:relative;width:38px;height:38px;flex:0 0 38px}
   .countdown .ring svg{transform:rotate(-90deg)}
   .countdown .ring .t{position:absolute;inset:0;display:grid;place-items:center;
-    font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--amber)}
+    font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--accent)}
   .countdown .meta{display:flex;flex-direction:column}
   .countdown .meta b{font-family:'JetBrains Mono';font-size:15px}
   .countdown .meta span{font-size:10.5px;color:var(--text-faint);letter-spacing:.04em;text-transform:uppercase}
@@ -139,12 +143,12 @@
 
   .controls{display:flex;align-items:center;gap:8px}
   button.btn{
-    font-family:'IBM Plex Sans';font-size:12.5px;font-weight:500;color:var(--text);
+    font-family:'DM Sans';font-size:12.5px;font-weight:500;color:var(--text);
     background:var(--bg-raised);border:1px solid var(--line);border-radius:8px;
     height:34px;padding:0 13px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   }
   button.btn:hover{border-color:#4a4030;background:#272118}
-  button.btn.amber{background:var(--amber);color:#1a1206;border-color:var(--amber);font-weight:600}
+  button.btn.amber{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
   button.btn.amber:hover{filter:brightness(1.07)}
   button.btn.ghost{background:transparent}
   button.icon{width:34px;height:34px;padding:0;justify-content:center;font-size:15px}
@@ -165,7 +169,7 @@
   .menu-row .hsel{height:30px}
   .menu-sep{height:1px;background:var(--line-soft);margin:4px 2px}
   .menu-item{
-    font-family:'IBM Plex Sans';font-size:13px;font-weight:500;color:var(--text);
+    font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--text);
     background:transparent;border:0;border-radius:8px;text-align:left;width:100%;
     padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:9px;
   }
@@ -192,9 +196,9 @@
 
   .col-head{position:sticky;top:0;z-index:6;background:var(--bg);
     border-bottom:1px solid var(--line);padding:9px 12px;text-align:center}
-  .col-head.today{color:var(--amber)}
+  .col-head.today{color:var(--accent)}
   .col-head .dow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
-  .col-head.today .dow{color:var(--amber)}
+  .col-head.today .dow{color:var(--accent)}
   .col-head .dnum{font-family:'Instrument Serif';font-size:23px;line-height:1.1}
   .col-head .tot{font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-dim);margin-top:1px}
 
@@ -204,10 +208,10 @@
 
   .daycol{position:relative;border-left:1px solid var(--line-soft);cursor:cell}
   .selbox{position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
-    border-left:4px solid var(--amber);border-top:1px solid var(--amber);
+    border-left:4px solid var(--accent);border-top:1px solid var(--accent);
     box-shadow:inset 0 0 0 1px #ffffff10, 0 1px 3px #00000055;
-    background:var(--amber-soft);z-index:5;pointer-events:none}
-  .selbox .sl{display:block;font-size:12px;font-weight:600;color:var(--amber);
+    background:var(--accent-soft);z-index:5;pointer-events:none}
+  .selbox .sl{display:block;font-size:12px;font-weight:600;color:var(--accent);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .selbox .st{font-family:'JetBrains Mono';font-size:9.5px;color:var(--text-dim)}
   body.dragging{user-select:none}
@@ -247,7 +251,7 @@
   .modal::-webkit-scrollbar{width:10px}
   .modal::-webkit-scrollbar-thumb{background:#322a20;border-radius:6px;border:3px solid var(--bg-raised)}
   .modal-h{padding:22px 24px 8px}
-  .modal-h .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+  .modal-h .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
   .modal-h h2{font-family:'Instrument Serif';font-weight:400;font-size:27px;margin-top:3px}
   .modal-h p{color:var(--text-dim);font-size:13px;margin-top:4px}
   .modal-b{padding:8px 24px 4px}
@@ -255,50 +259,50 @@
 
   input.txt,select.txt{
     width:100%;background:var(--bg-sunken);border:1px solid var(--line);border-radius:10px;
-    color:var(--text);font-family:'IBM Plex Sans';font-size:15px;padding:13px 14px;outline:none;transition:.15s}
-  input.txt:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+    color:var(--text);font-family:'DM Sans';font-size:15px;padding:13px 14px;outline:none;transition:.15s}
+  input.txt:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   label.fl{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 7px}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .chip-b{font-family:'IBM Plex Sans';font-size:12.5px;color:var(--text);background:var(--bg-sunken);
+  .chip-b{font-family:'DM Sans';font-size:12.5px;color:var(--text);background:var(--bg-sunken);
     border:1px solid var(--line);border-left:3px solid var(--bc,#888);border-radius:20px;padding:6px 13px;cursor:pointer;transition:.13s}
   .chip-b:hover{background:#272118;border-color:#4a4030}
-  .chip-b.same{border-color:var(--amber);color:var(--amber)}
+  .chip-b.same{border-color:var(--accent);color:var(--accent)}
 
   /* catch-up rows */
   .gaprow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft)}
   .gaprow .tg{font-family:'JetBrains Mono';font-size:12px;color:var(--text-dim);flex:0 0 96px}
   .gaprow input{flex:1;background:var(--bg-sunken);border:1px solid var(--line);border-radius:8px;
     color:var(--text);font-size:13.5px;padding:9px 11px;outline:none}
-  .gaprow input:focus{border-color:var(--amber)}
+  .gaprow input:focus{border-color:var(--accent)}
   .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:11px;cursor:pointer;padding:6px}
   .gaprow.done{opacity:.4}
 
   .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{background:var(--bg-raised);border:0;color:var(--text-dim);padding:8px 12px;cursor:pointer;font-size:12px;font-family:inherit}
-  .seg button.on{background:var(--amber);color:#1a1206;font-weight:600}
+  .seg button.on{background:var(--accent);color:var(--on-accent);font-weight:600}
 
   .row{display:flex;gap:12px}
   .row>*{flex:1}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
-    background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--amber);
+    background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent);
     padding:12px 18px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transition:.25s;z-index:200;font-size:13px}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .muted{color:var(--text-faint);font-size:12px}
-  .del{color:var(--now);background:transparent;border:1px solid #4a2a22}
+  .del{color:var(--now);background:transparent;border:1px solid var(--line)}
   .del:hover{background:#2a1813}
   kbd{font-family:'JetBrains Mono';font-size:10px;background:var(--bg-sunken);border:1px solid var(--line);
     border-radius:4px;padding:1px 5px;color:var(--text-dim)}
 
   /* ---------- install affordance ---------- */
-  #installBtn{display:none;border-color:var(--amber);color:var(--amber)}
+  #installBtn{display:none;border-color:var(--accent);color:var(--accent)}
   #installBtn.show{display:inline-flex}
   .ioslist{margin:14px 0 4px;padding:0;list-style:none;counter-reset:step}
   .ioslist li{position:relative;padding:10px 0 10px 40px;border-bottom:1px solid var(--line-soft);
     color:var(--text-dim);font-size:14px}
   .ioslist li:last-child{border-bottom:0}
   .ioslist li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:9px;
-    width:26px;height:26px;border-radius:50%;background:var(--amber-soft);color:var(--amber);
+    width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
     display:grid;place-items:center;font-family:'JetBrains Mono';font-size:12px;font-weight:700}
   .ioslist b{color:var(--text)}
   .shareglyph{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--line);
@@ -346,21 +350,21 @@
   }
   .intro.show{display:block}
   .intro-wrap{max-width:760px;margin:0 auto;padding:64px 28px 72px;text-align:center}
-  .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:14px}
+  .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px}
   .intro h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1;letter-spacing:.3px;margin-bottom:18px}
-  .intro h1 em{font-style:italic;color:var(--amber)}
+  .intro h1 em{font-style:italic;color:var(--accent)}
   .intro .lead{font-size:15px;line-height:1.7;color:var(--text-dim);max-width:540px;margin:0 auto}
 
   .intro-points{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:40px auto 0;text-align:left}
   .intro-point{background:var(--bg-raised);border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px}
   .intro-point h3{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px}
   .intro-point p{font-size:13.5px;line-height:1.62;color:var(--text-dim)}
-  .intro-point .pn{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--amber-soft);color:var(--amber);
+  .intro-point .pn{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
     display:grid;place-items:center;font-family:'JetBrains Mono';font-size:12px;font-weight:700}
 
   .intro-demo{max-width:560px;margin:38px auto 0;display:flex;flex-direction:column;align-items:center}
   .intro-bubble{width:100%;background:var(--bg-raised);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;text-align:left}
-  .intro-bubble .bk{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:6px}
+  .intro-bubble .bk{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:6px}
   .intro-bubble .bq{font-family:'Instrument Serif',serif;font-size:20px;margin-bottom:3px}
   .intro-bubble .bt{font-size:11.5px;color:var(--text-faint);margin-bottom:13px}
   .intro-bubble .bchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px}
@@ -375,7 +379,7 @@
   .intro-xls .xb .xc{color:var(--text-dim)}
 
   .intro-badge{display:inline-flex;align-items:center;gap:8px;margin:34px auto 0;padding:9px 18px;
-    background:var(--amber-soft);border:1px solid var(--amber);border-radius:999px;font-size:12px;font-weight:500;color:var(--amber);line-height:1.45}
+    background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;font-size:12px;font-weight:500;color:var(--accent);line-height:1.45}
   .intro-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:32px}
   .intro-cta .btn{height:44px;padding:0 22px;font-size:14px;border-radius:11px}
   .intro-foot{margin-top:38px;font-size:11px;color:var(--text-faint)}
@@ -590,8 +594,9 @@ let SLOT_MIN = 15;                       // active block size, from settings
 function colsForViewport(){ return window.matchMedia("(max-width:760px)").matches ? 1 : 3; }
 let DAY_COLS = colsForViewport();        // 3 on desktop, 1 on phones
 const CATCHUP_CAP_MS = 2 * 60 * 60 * 1000;   // only ask back ~2h
-const PALETTE = ["#e8a33d","#5ec5b6","#e06c75","#7aa2f7","#c39ac9",
-                 "#a3be8c","#d19a66","#56b6c2","#e5c07b","#bb9af7","#ef9fbc","#83c9f4"];
+/* Calm, Kideon-harmonious block hues — mid-tone, readable on off-white and navy. */
+const PALETTE = ["#c49a6c","#5f8f8c","#c0766a","#6b86b0","#a07fa6",
+                 "#8aa173","#c2935a","#5b9aa0","#d0a85c","#9488c0","#c98bab","#79a3c4"];
 const HOUR_PX = 116, PX_PER_MIN = HOUR_PX/60;
 
 /* ---------- state ---------- */
@@ -603,9 +608,9 @@ function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
     if(s && s.blocks) return Object.assign({blocks:[],recentLabels:[],settings:{}}, s,
-      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false}, s.settings||{})});
+      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,theme:"light"}, s.settings||{})});
   }catch(e){}
-  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false}};
+  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,theme:"light"}};
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -1337,11 +1342,11 @@ function showUpdateToast(reg){
 }
 
 function applyTheme(){
-  const light=state.settings.theme==="light";
-  document.documentElement.setAttribute("data-theme", light?"light":"dark");
-  $("themeBtn").textContent=light?"☀️ Theme":"🌙 Theme";
+  const dark=state.settings.theme==="dark";
+  document.documentElement.setAttribute("data-theme", dark?"dark":"light");
+  $("themeBtn").textContent=dark?"🌙 Theme":"☀️ Theme";
   // tint the OS status bar / window chrome to match the app
-  const meta=$("metaTheme"); if(meta) meta.setAttribute("content", light?"#eceef3":"#0b0c0f");
+  const meta=$("metaTheme"); if(meta) meta.setAttribute("content", dark?"#0f2137":"#faf9f7");
 }
 $("themeBtn").onclick=()=>{ state.settings.theme=(state.settings.theme==="light")?"dark":"light"; save(); applyTheme(); };
 
