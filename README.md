@@ -118,7 +118,7 @@ ist lokal unter `vendor/` gebündelt, damit der Export auch offline (und von `fi
 funktioniert. Sonst keine Abhängigkeiten.
 
 Alle Pfade sind **relativ** — die App läuft unverändert auf dem GitHub-Pages-Subpfad
-(`…/timelogging/`) wie auf jeder anderen Domain.
+(`…/timelog/`) wie auf jeder anderen Domain.
 
 ### Icons & Screenshots neu generieren
 
