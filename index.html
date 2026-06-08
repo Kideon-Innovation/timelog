@@ -313,6 +313,7 @@
   .gaprow input{flex:1;background:var(--bg-sunken);border:1px solid var(--line);border-radius:8px;
     color:var(--text);font-size:13.5px;padding:9px 11px;outline:none}
   .gaprow input:focus{border-color:var(--accent)}
+  .gaprow input::placeholder{color:var(--text-faint)}
   .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:11px;cursor:pointer;padding:6px}
   .gaprow.done{opacity:.4}
 
@@ -1122,7 +1123,7 @@ function openCatchup(gaps){
     const row=document.createElement("div"); row.className="gaprow";
     const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
     const inp=document.createElement("input"); inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
-    inp.placeholder="leer lassen, wenn nicht getrackt werden soll";
+    inp.placeholder="Stichwort …";
     const skip=document.createElement("span"); skip.className="skip"; skip.textContent="✕";
     skip.title="leer lassen"; skip.onclick=()=>{ inp.value=""; row.classList.add("done"); };
     row.append(tg,inp,skip);
