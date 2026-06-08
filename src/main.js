@@ -12,45 +12,23 @@ import {
   minOfDay, minLabel, blockDurMin, fmtDur, esc,
   floorSlot as floorSlotMin, nextBoundary as nextBoundaryMin,
 } from './time.js';
+import {
+  state, save,
+  INTERVALS, PALETTE, CATCHUP_CAP_MS, HOUR_PX, PX_PER_MIN, DOW, MON,
+  getSlotMin, setSlotMin, getAnchor, setAnchor,
+  colsForViewport, getDayCols, setDayCols,
+} from './state.js';
 
 // Thin wrappers so the rest of the app keeps calling floorSlot(d) /
-// nextBoundary(d) unchanged; they supply the active SLOT_MIN to the pure,
+// nextBoundary(d) unchanged; they supply the active block size to the pure,
 // parameterised implementations in time.js.
-const floorSlot = (d) => floorSlotMin(d, SLOT_MIN);
-const nextBoundary = (d) => nextBoundaryMin(d, SLOT_MIN);
+const floorSlot = (d) => floorSlotMin(d, getSlotMin());
+const nextBoundary = (d) => nextBoundaryMin(d, getSlotMin());
 
 /* ============================================================
-   TimeLog — single-file passive time tracker.  MIT License.
+   TimeLog — passive time tracker.  MIT License.
+   State + config live in state.js; pure time helpers in time.js.
    ============================================================ */
-
-const KEY = "timelog.v1";
-const INTERVALS = [60,30,20,15,10,6];   // = 60 / n  (n = 1,2,3,4,6,10)
-let SLOT_MIN = 15;                       // active block size, from settings
-function colsForViewport(){ return window.matchMedia("(max-width:760px)").matches ? 1 : 3; }
-let DAY_COLS = colsForViewport();        // 3 on desktop, 1 on phones
-const CATCHUP_CAP_MS = 2 * 60 * 60 * 1000;   // only ask back ~2h
-/* Calm, Kideon-harmonious block hues — mid-tone, readable on off-white and navy. */
-const PALETTE = ["#c49a6c","#5f8f8c","#c0766a","#6b86b0","#a07fa6",
-                 "#8aa173","#c2935a","#5b9aa0","#d0a85c","#9488c0","#c98bab","#79a3c4"];
-const HOUR_PX = 116, PX_PER_MIN = HOUR_PX/60;
-
-/* ---------- state ---------- */
-let state = load();
-SLOT_MIN = INTERVALS.includes(state.settings.intervalMin) ? state.settings.intervalMin : 15;
-let anchor = startOfDay(new Date());   // left-most visible day
-
-function load(){
-  try{
-    const s = JSON.parse(localStorage.getItem(KEY));
-    if(s && s.blocks) return Object.assign({blocks:[],recentLabels:[],settings:{}}, s,
-      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}, s.settings||{})});
-  }catch(e){}
-  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}};
-}
-function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
-
-/* ---------- time helpers ---------- */
-const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"], MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
 
 /* ---------- colors ---------- */
 function colorFor(label){
@@ -67,7 +45,7 @@ function blockAt(slotStart){
 }
 function setBlock(slotStart,label){
   label=label.trim();
-  const s=new Date(slotStart), e=new Date(s.getTime()+SLOT_MIN*60000);
+  const s=new Date(slotStart), e=new Date(s.getTime()+getSlotMin()*60000);
   const ex=blockAt(s);
   if(!label){ if(ex) state.blocks=state.blocks.filter(b=>b!==ex); }
   else if(ex){ ex.label=label; }
@@ -98,8 +76,8 @@ function fillRange(s,e,label){
   clearRange(s,e);
   label=label.trim();
   if(label){
-    for(let t=new Date(s); t.getTime()<e.getTime(); t=new Date(t.getTime()+SLOT_MIN*60000)){
-      const end=new Date(Math.min(t.getTime()+SLOT_MIN*60000, e.getTime()));
+    for(let t=new Date(s); t.getTime()<e.getTime(); t=new Date(t.getTime()+getSlotMin()*60000)){
+      const end=new Date(Math.min(t.getTime()+getSlotMin()*60000, e.getTime()));
       state.blocks.push({id:uid(),start:iso(t),end:iso(end),label});
     }
     bumpRecent(label);
@@ -160,7 +138,7 @@ function gapSlots(){
     const fe=floorSlot(new Date(lastEnd));
     if(fe.getTime()>s.getTime()) s=fe;
   }
-  for(let t=s; t.getTime()<liveEnd.getTime(); t=new Date(t.getTime()+SLOT_MIN*60000)){
+  for(let t=s; t.getTime()<liveEnd.getTime(); t=new Date(t.getTime()+getSlotMin()*60000)){
     if(!blockAt(t)) out.push(new Date(t));
   }
   return out;
@@ -185,8 +163,8 @@ function renderHeaderClock(){
 }
 
 function renderRange(){
-  const a=anchor, b=addDays(anchor,DAY_COLS-1);
-  if(DAY_COLS===1){
+  const a=getAnchor(), b=addDays(a,getDayCols()-1);
+  if(getDayCols()===1){
     // Single-day view (mobile): show one dated label with weekday — a dash range
     // ("8. – 8. Jun") reads as a bug.
     $("rangeLabel").innerHTML = DOW[a.getDay()]+", "+a.getDate()+". "+MON[a.getMonth()]+" "+a.getFullYear();
@@ -198,7 +176,7 @@ function renderRange(){
 }
 
 function renderLegend(){
-  const days=[...Array(DAY_COLS)].map((_,i)=>addDays(anchor,i));
+  const days=[...Array(getDayCols())].map((_,i)=>addDays(getAnchor(),i));
   const labels=new Set();
   state.blocks.forEach(b=>{ const d=new Date(b.start); if(days.some(x=>sameDay(x,d))) labels.add(b.label); });
   const el=$("legend"); el.innerHTML="";
@@ -213,8 +191,9 @@ function renderCalendar(){
   const cal=$("cal"); cal.innerHTML="";
   const totalH=24*HOUR_PX;
   const now=new Date();
-  const gutPx = DAY_COLS===1 ? 44 : 60;
-  cal.style.gridTemplateColumns = gutPx+"px repeat("+DAY_COLS+",1fr)";
+  const dayCols=getDayCols(), anchor=getAnchor();
+  const gutPx = dayCols===1 ? 44 : 60;
+  cal.style.gridTemplateColumns = gutPx+"px repeat("+dayCols+",1fr)";
 
   // gutter
   const gut=document.createElement("div"); gut.className="gutter"; gut.style.height=totalH+"px";
@@ -227,7 +206,7 @@ function renderCalendar(){
   }
   cal.appendChild(gut);
 
-  for(let i=0;i<DAY_COLS;i++){
+  for(let i=0;i<dayCols;i++){
     const day=addDays(anchor,i), isToday=sameDay(day,now);
     const col=document.createElement("div"); col.className="daycol"+(isToday?" today":"");
     col.style.height=totalH+"px";
@@ -272,7 +251,7 @@ function renderCalendar(){
     if(isToday){
       const ss=floorSlot(now);
       const ns=document.createElement("div"); ns.className="nowslot";
-      ns.style.top=(minOfDay(ss)*PX_PER_MIN)+"px"; ns.style.height=(SLOT_MIN*PX_PER_MIN)+"px";
+      ns.style.top=(minOfDay(ss)*PX_PER_MIN)+"px"; ns.style.height=(getSlotMin()*PX_PER_MIN)+"px";
       col.appendChild(ns);
       const nl=document.createElement("div"); nl.className="nowline";
       nl.style.top=(minOfDay(now)*PX_PER_MIN)+"px"; col.appendChild(nl);
@@ -327,8 +306,8 @@ function beatRuns(day){
   const runs=[];
   for(const m of mins){
     const last=runs[runs.length-1];
-    if(last && m<=last.endMin) last.endMin=Math.max(last.endMin,m+SLOT_MIN);
-    else runs.push({startMin:m,endMin:m+SLOT_MIN});
+    if(last && m<=last.endMin) last.endMin=Math.max(last.endMin,m+getSlotMin());
+    else runs.push({startMin:m,endMin:m+getSlotMin()});
   }
   return runs;
 }
@@ -361,7 +340,7 @@ function openPing(triggeredByTimer){
 }
 
 function openSinglePing(slot){
-  const end=new Date(slot.getTime()+SLOT_MIN*60000);
+  const end=new Date(slot.getTime()+getSlotMin()*60000);
   $("pingKick").textContent="15-MINUTEN-PING";
   $("pingTitle").textContent="Woran hast du gearbeitet?";
   $("pingSub").textContent=hhmm(slot)+" – "+hhmm(end)+" · "+DOW[slot.getDay()]+" "+slot.getDate()+". "+MON[slot.getMonth()];
@@ -390,7 +369,7 @@ function openCatchup(gaps){
   $("pingSub").textContent="Lücken der letzten 2 Stunden. Leer lassen ist ok — du warst evtl. nicht am PC.";
   const body=$("pingBody"); body.innerHTML="";
   const rows=gaps.map(slot=>{
-    const end=new Date(slot.getTime()+SLOT_MIN*60000);
+    const end=new Date(slot.getTime()+getSlotMin()*60000);
     const row=document.createElement("div"); row.className="gaprow";
     const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
     const inp=document.createElement("input"); inp.setAttribute("autocomplete","off");
@@ -440,17 +419,17 @@ function attachDrag(col,day){
     if(e.button>0) return;                                    // ignore right/middle
     if(e.target.closest(".block")||e.target.closest(".col-head")) return;
     const rect=col.getBoundingClientRect();
-    const slotPx=SLOT_MIN*PX_PER_MIN, maxIdx=Math.floor(1440/SLOT_MIN)-1;
+    const slotMin=getSlotMin(), slotPx=slotMin*PX_PER_MIN, maxIdx=Math.floor(1440/slotMin)-1;
     const idxAt=cy=>Math.max(0,Math.min(maxIdx,Math.floor((cy-rect.top)/slotPx)));
     const startIdx=idxAt(e.clientY), startY=e.clientY, startX=e.clientX;
     const touch=e.pointerType==="touch";
-    const slotTime=i=>{ const d=new Date(day); d.setMinutes(i*SLOT_MIN); return d; };
+    const slotTime=i=>{ const d=new Date(day); d.setMinutes(i*slotMin); return d; };
     let selecting=false, holdTimer=null, box=null, lbl=null, tm=null;
 
     const draw=cur=>{
       const lo=Math.min(startIdx,cur),hi=Math.max(startIdx,cur);
       box.style.top=(lo*slotPx)+"px"; box.style.height=((hi-lo+1)*slotPx)+"px";
-      tm.textContent=hhmm(slotTime(lo))+"–"+hhmm(slotTime(hi+1))+" · "+fmtDur((hi-lo+1)*SLOT_MIN);
+      tm.textContent=hhmm(slotTime(lo))+"–"+hhmm(slotTime(hi+1))+" · "+fmtDur((hi-lo+1)*slotMin);
     };
     const beginSel=()=>{
       selecting=true; holdTimer=null;
@@ -815,7 +794,7 @@ function updateNowLine(){
 }
 function updateCountdown(){
   const now=Date.now(), nb=nextBoundary(new Date()).getTime();
-  const remain=Math.max(0,nb-now), total=SLOT_MIN*60000;
+  const remain=Math.max(0,nb-now), total=getSlotMin()*60000;
   const mm=Math.floor(remain/60000), ss=Math.floor(remain%60000/1000);
   $("cdTime").textContent=String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   $("ringTxt").textContent=mm;
@@ -927,10 +906,10 @@ function toast(m){ const t=$("toast"); t.textContent=m; t.onclick=null; t.style.
 /* ============================================================
    WIRING
    ============================================================ */
-$("prevBtn").onclick=()=>{ anchor=addDays(anchor,-DAY_COLS); render(); };
-$("nextBtn").onclick=()=>{ anchor=addDays(anchor,DAY_COLS); render(); };
-$("todayBtn").onclick=()=>{ anchor=startOfDay(new Date()); render(); scrollToNow(); };
-$("datePick").onchange=e=>{ if(e.target.value){ anchor=startOfDay(new Date(e.target.value+"T00:00:00")); render(); } };
+$("prevBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),-getDayCols())); render(); };
+$("nextBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),getDayCols())); render(); };
+$("todayBtn").onclick=()=>{ setAnchor(startOfDay(new Date())); render(); scrollToNow(); };
+$("datePick").onchange=e=>{ if(e.target.value){ setAnchor(startOfDay(new Date(e.target.value+"T00:00:00"))); render(); } };
 $("logNowBtn").onclick=()=>openLogNow();
 $("exportBtn").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 $("expCancel").onclick=()=>close("exportScrim");
@@ -1028,7 +1007,7 @@ function openInstallHelp(){
 // re-render when crossing the mobile/desktop breakpoint
 let resizeT=null;
 window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{
-  const c=colsForViewport(); if(c!==DAY_COLS){ DAY_COLS=c; render(); }
+  const c=colsForViewport(); if(c!==getDayCols()){ setDayCols(c); render(); }
 },150); });
 
 /* Service worker: offline app shell + auto-update.
@@ -1051,13 +1030,13 @@ $("themeBtn").onclick=()=>{ state.settings.theme=(state.settings.theme==="light"
 function initInterval(){
   const sel=$("intervalSel");
   sel.innerHTML=INTERVALS.map(m=>`<option value="${m}">${m} min</option>`).join("");
-  sel.value=String(SLOT_MIN);
+  sel.value=String(getSlotMin());
   sel.onchange=()=>{
-    SLOT_MIN=parseInt(sel.value,10);
-    state.settings.intervalMin=SLOT_MIN; save();
+    setSlotMin(parseInt(sel.value,10));
+    state.settings.intervalMin=getSlotMin(); save();
     lastFired=floorSlot(new Date()).getTime();
     render(); updateCountdown();
-    toast("Blockgröße: "+SLOT_MIN+" min");
+    toast("Blockgröße: "+getSlotMin()+" min");
   };
 }
 
