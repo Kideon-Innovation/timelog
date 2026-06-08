@@ -37,96 +37,120 @@
 <!-- First-run pitch (empty-state intro) -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-wrap">
-    <p class="intro-kick">Der digitale Stundenzettel · für Kanzleien</p>
-    <h1>Der digitale Stundenzettel für die <em>Kanzlei</em>.</h1>
-    <p class="lead">Stunden aufschreiben, einfach gemacht. Ein Stichwort zwischendurch — am Monatsende ein sauberer Zettel, den du direkt auf deine Rechnung überträgst.</p>
 
-    <div class="trust">
-      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>Bleibt auf deinem Rechner</span>
-      <span class="sep"></span>
-      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg>DSGVO-konform &amp; §203</span>
-      <span class="sep"></span>
-      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9 19l-3-7 9-9-3 8 6-1-9 9 1-6-5-.5Z"/></svg>Funktioniert offline</span>
-    </div>
+    <!-- ===== HERO — primary CTA lives here, above the fold ===== -->
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="intro-kick">Der digitale Stundenzettel · für Kanzleien</p>
+        <h1>Deine Stunden schreiben<br>sich fast von&nbsp;<em>selbst</em>.</h1>
+        <p class="lead">TimeLog fragt dich in ruhigen Abständen, woran du gerade arbeitest. Ein Stichwort genügt — und am Monatsende liegt dein Stundenzettel fertig da, sauber bis zur Rechnung.</p>
 
-    <div class="intro-points">
-      <div class="intro-point">
-        <h3><span class="pn">1</span> Einfach aufschreiben</h3>
-        <p>Ein Stichwort zwischendurch. Kein Formular, kein Aufwand, kein Drandenken — der Stundenzettel fragt von selbst.</p>
-      </div>
-      <div class="intro-point">
-        <h3><span class="pn">2</span> Bleibt bei euch</h3>
-        <p>Jeder im Team trackt lokal auf seinem Rechner. Nichts wird hochgeladen, keine Mandantendaten irgendwo im Netz.</p>
-      </div>
-      <div class="intro-point">
-        <h3><span class="pn">3</span> Fertig für die Rechnung</h3>
-        <p>Am Monatsende sauber exportieren und nach DATEV oder in deine Abrechnung übertragen.</p>
-      </div>
-    </div>
+        <div class="hero-cta">
+          <button class="btn amber" id="introStart">Kostenlos starten →</button>
+          <a class="hero-secondary" href="#wie">So funktioniert's ↓</a>
+        </div>
+        <p class="intro-cta-note">Sofort im Browser · ohne Konto · ohne Lizenzkosten</p>
 
-    <div class="intro-counter">
-      <p class="intro-counter-kick">Warum nicht einfach mitschneiden?</p>
+        <div class="trust">
+          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>Bleibt auf deinem Rechner</span>
+          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg>DSGVO &amp; §203 gewahrt</span>
+          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9 19l-3-7 9-9-3 8 6-1-9 9 1-6-5-.5Z"/></svg>Läuft offline</span>
+        </div>
+      </div>
+
+      <!-- product demo: the visual anchor of the hero -->
+      <div class="hero-demo">
+        <div class="intro-demo" id="introDemo">
+          <!-- mini app calendar (stylised after the real day view) -->
+          <div class="demo-cal" aria-hidden="true">
+            <div class="demo-gut">
+              <span class="gl" style="top:64px">10</span>
+              <span class="gl" style="top:124px">11</span>
+              <span class="gl" style="top:184px">12</span>
+              <span class="gl" style="top:244px">13</span>
+            </div>
+            <div class="demo-day">
+              <div class="demo-chead"><span class="dow">Mo</span><span class="dnum">8</span></div>
+              <div class="hr-line" style="top:64px"></div>
+              <div class="hr-line" style="top:124px"></div>
+              <div class="hr-line" style="top:184px"></div>
+              <div class="hr-line" style="top:244px"></div>
+              <!-- lived-in entries -->
+              <div class="demo-blk" style="top:70px;height:44px;--bc:#6b86b0;--bg2:#6b86b03a">
+                <div class="l">Mandant Berg – Telefonat</div><div class="t">10:00 – 10:45</div>
+              </div>
+              <div class="demo-blk" style="top:130px;height:48px;--bc:#8aa173;--bg2:#8aa1733a">
+                <div class="l">Akte Lindner – Prüfung</div><div class="t">11:00 – 11:45</div>
+              </div>
+              <!-- the entry the demo logs into the 13:00 slot -->
+              <div class="demo-blk demo-new" style="top:250px;height:44px;--bc:#c49a6c;--bg2:#c49a6c3a">
+                <div class="l">Projekt Atlas – Schriftsatz</div><div class="t">13:00 – 13:45</div>
+              </div>
+            </div>
+
+            <!-- prompt shown after the empty slot is clicked -->
+            <div class="demo-ping">
+              <div class="pk">Eintrag · 13:00 – 13:45</div>
+              <div class="pq">Woran hast du gearbeitet?</div>
+              <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
+            </div>
+
+            <!-- fake cursor -->
+            <span class="demo-cursor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2l14 7-6 2-2 6-6-15z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: Wie es funktioniert ===== -->
+    <section class="intro-section" id="wie">
+      <p class="section-kick">In drei Schritten</p>
+      <h2 class="section-title">Aufschreiben, ohne dran zu denken.</h2>
+      <div class="intro-points">
+        <div class="intro-point">
+          <h3><span class="pn">1</span> Stichwort genügt</h3>
+          <p>In ruhigen Abständen fragt TimeLog kurz nach. Ein Wort, ein Klick — kein Formular, kein Timer, kein Drandenken.</p>
+        </div>
+        <div class="intro-point">
+          <h3><span class="pn">2</span> Bleibt bei euch</h3>
+          <p>Jeder im Team trackt lokal auf dem eigenen Rechner. Nichts wird hochgeladen — Mandantendaten verlassen die Kanzlei nie.</p>
+        </div>
+        <div class="intro-point">
+          <h3><span class="pn">3</span> Fertig für die Rechnung</h3>
+          <p>Am Monatsende ein sauberer Excel-Export — direkt weiter nach DATEV oder in deine Abrechnung.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: Warum nicht einfach mitschneiden? ===== -->
+    <section class="intro-section intro-counter">
+      <p class="section-kick">Der Unterschied</p>
+      <h2 class="section-title">Warum nicht einfach mitschneiden?</h2>
       <div class="intro-flaws">
         <div class="intro-flaw">
           <h3><span class="fx" aria-hidden="true">✕</span> Auto-Tracking</h3>
-          <p>Tools, die jedes Fenster mitschneiden, sind teuer — und geben dir am Ende 1000 Schnipsel. Wer arbeitet schon 15 Minuten am Stück in einem Fenster? Abends sitzt du trotzdem da und sortierst von Hand, woran du eigentlich warst.</p>
+          <p>Mitschneide-Tools sind teuer und liefern dir am Ende 1000 Schnipsel. Wer arbeitet schon 15 Minuten am Stück in einem Fenster? Abends sortierst du trotzdem von Hand.</p>
         </div>
         <div class="intro-flaw">
           <h3><span class="fx" aria-hidden="true">✕</span> Stoppuhr</h3>
           <p>Start drücken klappt — bis du's vergisst. Dann ist Nachtragen jedes Mal ein Ratespiel: wann war das, wie lange?</p>
         </div>
+        <div class="intro-flaw intro-flaw-good">
+          <h3><span class="fx" aria-hidden="true">✓</span> TimeLog</h3>
+          <p>Fragt von selbst, woran du arbeitest. Ein Klick bestätigt das Thema, oder du tippst kurz was Neues. <strong>Kein Mitschneiden, kein Drandenken.</strong></p>
+        </div>
       </div>
-      <p class="intro-resolve">TimeLog macht beides nicht. Es fragt von selbst, woran du arbeitest — ein Klick bestätigt, dass du am selben Thema dranbleibst, oder du tippst kurz was Neues. <strong>Kein Mitschneiden, kein Drandenken.</strong></p>
-    </div>
+    </section>
 
-    <p class="intro-demo-kick">So einfach geht das</p>
-    <div class="intro-demo" id="introDemo">
-      <!-- mini app calendar (stylised after the real day view) -->
-      <div class="demo-cal" aria-hidden="true">
-        <div class="demo-gut">
-          <span class="gl" style="top:64px">10</span>
-          <span class="gl" style="top:124px">11</span>
-          <span class="gl" style="top:184px">12</span>
-          <span class="gl" style="top:244px">13</span>
-        </div>
-        <div class="demo-day">
-          <div class="demo-chead"><span class="dow">Mo</span><span class="dnum">8</span></div>
-          <div class="hr-line" style="top:64px"></div>
-          <div class="hr-line" style="top:124px"></div>
-          <div class="hr-line" style="top:184px"></div>
-          <div class="hr-line" style="top:244px"></div>
-          <!-- lived-in entries -->
-          <div class="demo-blk" style="top:70px;height:44px;--bc:#6b86b0;--bg2:#6b86b03a">
-            <div class="l">Mandant Berg – Telefonat</div><div class="t">10:00 – 10:45</div>
-          </div>
-          <div class="demo-blk" style="top:130px;height:48px;--bc:#8aa173;--bg2:#8aa1733a">
-            <div class="l">Akte Lindner – Prüfung</div><div class="t">11:00 – 11:45</div>
-          </div>
-          <!-- the entry the demo logs into the 13:00 slot -->
-          <div class="demo-blk demo-new" style="top:250px;height:44px;--bc:#c49a6c;--bg2:#c49a6c3a">
-            <div class="l">Projekt Atlas – Schriftsatz</div><div class="t">13:00 – 13:45</div>
-          </div>
-        </div>
-
-        <!-- prompt shown after the empty slot is clicked -->
-        <div class="demo-ping">
-          <div class="pk">Eintrag · 13:00 – 13:45</div>
-          <div class="pq">Woran hast du gearbeitet?</div>
-          <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
-        </div>
-
-        <!-- fake cursor -->
-        <span class="demo-cursor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2l14 7-6 2-2 6-6-15z"/></svg></span>
+    <!-- ===== closing CTA + reassurance ===== -->
+    <section class="intro-section intro-final">
+      <div class="intro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Alles bleibt auf diesem Computer — kein Server, kein Konto.</div>
+      <div class="intro-cta">
+        <button class="btn amber" id="introStartBottom">Kostenlos starten →</button>
+        <button class="btn" id="introInstall">↗ Als App installieren</button>
       </div>
-    </div>
-
-    <div class="intro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Alles bleibt auf diesem Computer — kein Server, kein Konto.</div>
-
-    <div class="intro-cta">
-      <button class="btn amber" id="introStart">Kostenlos starten →</button>
-      <button class="btn" id="introInstall">↗ Als App installieren</button>
-    </div>
-    <p class="intro-cta-note">Sofort im Browser · ohne Konto · ohne Lizenzkosten</p>
+      <p class="intro-cta-note">Sofort im Browser · ohne Konto · ohne Lizenzkosten</p>
+    </section>
 
     <footer class="intro-footer">
       <div class="footer-social">

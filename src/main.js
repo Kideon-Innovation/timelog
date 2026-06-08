@@ -972,6 +972,7 @@ function armIntroDemo(){
 }
 function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); refreshExportReminder(); }
 $("introStart").onclick=dismissIntro;
+$("introStartBottom").onclick=dismissIntro;              // closing CTA mirrors the hero start button
 $("introInstall").onclick=()=>$("installBtn").click();   // reuse existing install flow (prompt / iOS help)
 $("aboutBtn").onclick=()=>showIntro();
 

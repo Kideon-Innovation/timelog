@@ -414,24 +414,44 @@
     background:radial-gradient(1100px 560px at 80% -10%, var(--glow) 0%, transparent 60%), var(--bg);
   }
   .intro.show{display:block}
-  .intro-wrap{max-width:760px;margin:0 auto;padding:64px 28px 72px;text-align:center}
+  .intro-wrap{max-width:600px;margin:0 auto;padding:40px 24px 64px;text-align:center}
   /* on wide screens the pitch may use a content column up to ~1180px */
-  @media (min-width:900px){ .intro-wrap{max-width:1180px;padding:72px 48px 84px} }
+  @media (min-width:900px){ .intro-wrap{max-width:1180px;padding:56px 48px 80px} }
   .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px}
-  .intro h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1;letter-spacing:.3px;margin-bottom:18px}
+  .intro h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(2.1rem,7vw,3.1rem);line-height:1.08;letter-spacing:.3px;margin-bottom:16px}
   .intro h1 em{font-style:italic;color:var(--accent)}
-  .intro .lead{font-size:15px;line-height:1.7;color:var(--text-dim);max-width:540px;margin:0 auto}
+  .intro .lead{font-size:15.5px;line-height:1.65;color:var(--text-dim);max-width:480px;margin:0 auto}
 
-  /* trust strip — DSGVO · Kanzlei · offline */
-  .trust{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 16px;
-    margin:26px auto 0;max-width:540px}
-  .trust .tc{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
-    letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
-  .trust .tc svg{width:14px;height:14px;flex:0 0 14px;color:var(--accent)}
-  .trust .sep{width:4px;height:4px;border-radius:50%;background:var(--line);flex:0 0 4px}
-  @media (max-width:560px){ .trust .sep{display:none} }
+  /* ===== HERO — primary CTA above the fold ===== */
+  .hero{display:flex;flex-direction:column;align-items:center}
+  .hero-copy{display:flex;flex-direction:column;align-items:center}
 
-  .intro-points{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:40px auto 0;text-align:left}
+  .hero-cta{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px}
+  .hero-cta .btn.amber{height:50px;padding:0 30px;font-size:15.5px;border-radius:12px;
+    box-shadow:0 8px 22px -8px var(--accent)}
+  .hero-cta .btn.amber:hover{transform:translateY(-1px)}
+  .hero-secondary{font-size:13px;font-weight:500;color:var(--text-dim);text-decoration:none;
+    letter-spacing:.02em;border-bottom:1px solid transparent;transition:.15s}
+  .hero-secondary:hover{color:var(--accent);border-bottom-color:var(--accent-soft)}
+
+  /* trust strip — light chips */
+  .trust{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+    margin:24px auto 0;max-width:520px}
+  .trust .tc{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;
+    letter-spacing:.04em;color:var(--text-dim);padding:6px 12px;border-radius:999px;
+    background:var(--bg-raised);border:1px solid var(--line-soft)}
+  .trust .tc svg{width:13px;height:13px;flex:0 0 13px;color:var(--accent)}
+
+  .hero-demo{margin-top:38px;width:100%;display:flex;justify-content:center}
+
+  /* ===== shared section scaffolding ===== */
+  .intro-section{margin-top:64px;scroll-margin-top:24px}
+  .section-kick{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;text-align:center;margin-bottom:10px}
+  .section-title{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(1.5rem,4.5vw,2rem);
+    line-height:1.15;text-align:center;color:var(--text);margin-bottom:26px}
+
+  .intro-points{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:0 auto;text-align:left}
   .intro-point{background:var(--bg-raised);border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px}
   .intro-point h3{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px}
   .intro-point p{font-size:13.5px;line-height:1.62;color:var(--text-dim)}
@@ -439,17 +459,22 @@
     display:grid;place-items:center;font-family:'JetBrains Mono';font-size:12px;font-weight:700}
 
   /* ---------- contrast block: counters auto-tracking & stopwatch ---------- */
-  .intro-counter{max-width:560px;margin:48px auto 0;text-align:left}
-  .intro-counter-kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);
-    font-weight:600;text-align:center;margin-bottom:18px}
+  .intro-counter{max-width:560px;margin-left:auto;margin-right:auto;text-align:left}
   .intro-flaws{display:flex;flex-direction:column;gap:12px}
-  .intro-flaw{background:transparent;border:1px solid var(--line-soft);border-radius:14px;padding:16px 18px;opacity:.82}
+  .intro-flaw{background:transparent;border:1px solid var(--line-soft);border-radius:14px;padding:16px 18px;opacity:.85}
   .intro-flaw h3{font-size:14px;font-weight:600;color:var(--text-dim);margin-bottom:6px;display:flex;align-items:center;gap:10px}
   .intro-flaw p{font-size:13px;line-height:1.6;color:var(--text-dim)}
   .intro-flaw .fx{width:22px;height:22px;flex:0 0 22px;border-radius:50%;border:1px solid var(--line-soft);color:var(--text-dim);
     display:grid;place-items:center;font-size:12px;line-height:1}
-  .intro-resolve{font-size:13.5px;line-height:1.62;color:var(--text);margin:16px auto 0;max-width:540px;text-align:center}
-  .intro-resolve strong{color:var(--accent);font-weight:600}
+  /* the resolving "TimeLog" card — full opacity, accent-tinted */
+  .intro-flaw-good{opacity:1;background:var(--accent-soft);border-color:var(--accent)}
+  .intro-flaw-good h3{color:var(--text)}
+  .intro-flaw-good p{color:var(--text-dim)}
+  .intro-flaw-good .fx{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .intro-flaw-good strong{color:var(--accent);font-weight:600}
+
+  /* ===== closing CTA section ===== */
+  .intro-final{display:flex;flex-direction:column;align-items:center}
 
 
   /* ============================================================
@@ -460,9 +485,7 @@
      vibe) at small scale. Pure CSS keyframes; JS only toggles
      .playing on scroll-in-view. Reduced-motion → static final frame.
      ============================================================ */
-  .intro-demo-kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--accent);font-weight:600;margin:48px auto 0;text-align:center}
-  .intro-demo{position:relative;max-width:520px;margin:16px auto 0;
+  .intro-demo{position:relative;width:100%;max-width:440px;margin:0 auto;
     border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);
     background:linear-gradient(180deg,var(--bg-raised),var(--bg))}
   .demo-cal{position:relative;height:300px;display:grid;grid-template-columns:46px 1fr}
@@ -553,13 +576,14 @@
   @media (max-width:560px){ .demo-cal{height:264px} .intro-demo{max-width:100%} }
 
   /* local-only / offline reassurance — compact pill */
-  .intro-badge{display:inline-flex;align-items:center;gap:7px;margin:28px auto 0;padding:6px 13px 6px 11px;
+  .intro-badge{display:inline-flex;align-items:center;gap:7px;margin:0 auto;padding:6px 13px 6px 11px;
     background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;
     font-size:12px;font-weight:500;color:var(--accent);line-height:1.3;white-space:nowrap}
   .intro-badge svg{width:13px;height:13px;flex:0 0 13px}
   @media (max-width:420px){ .intro-badge{white-space:normal;text-align:left} }
-  .intro-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:32px}
-  .intro-cta .btn{height:44px;padding:0 22px;font-size:14px;border-radius:11px}
+  .intro-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:24px}
+  .intro-cta .btn{height:46px;padding:0 24px;font-size:14.5px;border-radius:11px}
+  .intro-cta .btn.amber{box-shadow:0 8px 22px -8px var(--accent)}
   /* quiet friction-free reassurance under the CTA — premium understatement */
   .intro-cta-note{margin:14px auto 0;font-size:11.5px;letter-spacing:.03em;color:var(--text-faint);text-align:center}
   .intro-foot{margin-top:38px;font-size:11px;color:var(--text-faint)}
@@ -588,37 +612,53 @@
      fills the width and feels premium instead of phone-locked.
      ============================================================ */
   @media (min-width:900px){
-    .intro h1{font-size:clamp(2.8rem,4.6vw,4rem);margin-bottom:22px}
-    .intro .lead{font-size:17px;line-height:1.75;max-width:640px}
-    .trust{max-width:760px;gap:12px 22px;margin-top:30px}
-    .trust .tc{font-size:11.5px}
+    .intro h1{font-size:clamp(2.7rem,4.4vw,3.7rem);margin-bottom:20px}
+    .intro .lead{font-size:17px;line-height:1.7;max-width:520px;margin:0}
+
+    /* HERO → two columns: copy left, live demo right. Vertically centred so
+       the whole hero (incl. the dominant CTA) sits in the first viewport. */
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;
+      min-height:min(620px,calc(100vh - 180px));text-align:left}
+    .hero-copy{align-items:flex-start;text-align:left}
+    .intro-kick{margin-bottom:16px}
+    .hero-cta{flex-direction:row;align-items:center;gap:20px;margin-top:30px}
+    .hero-cta .btn.amber{height:54px;padding:0 34px;font-size:16px}
+    .intro-cta-note{margin-left:0;text-align:left}
+    .trust{justify-content:flex-start;margin-left:0;max-width:none}
+    .hero-demo{margin-top:0;justify-content:flex-end}
+    .intro-demo{max-width:520px}
+
+    /* sections breathe more on desktop */
+    .intro-section{margin-top:104px}
+    .section-title{font-size:clamp(1.8rem,2.8vw,2.3rem);margin-bottom:38px}
 
     /* 3-step pitch → three equal columns */
     .intro-points{max-width:1080px;display:grid;grid-template-columns:repeat(3,1fr);
-      gap:20px;margin-top:52px;align-items:stretch}
+      gap:20px;align-items:stretch}
     .intro-point{padding:24px 24px 26px;display:flex;flex-direction:column}
     .intro-point h3{font-size:15.5px;margin-bottom:9px}
     .intro-point p{font-size:14px}
 
-    /* product demo sits a touch larger on roomy screens */
-    .intro-demo-kick{margin-top:56px}
-    .intro-demo{max-width:560px}
+    /* contrast block → three columns too */
+    .intro-counter{max-width:1080px}
+    .intro-flaws{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+    .intro-flaw{padding:22px 22px}
+
     .demo-cal{height:320px}
 
-    .intro-badge{margin-top:40px}
-    .intro-cta{margin-top:40px}
     .intro-cta .btn{height:48px;padding:0 28px;font-size:15px}
 
     /* footer: wider, OSS notes side-by-side */
-    .intro-footer{max-width:1000px;margin-top:72px;padding-top:42px}
+    .intro-footer{max-width:1000px;margin-top:96px;padding-top:42px}
     .footer-oss-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;
       max-width:920px;margin:26px auto 0;align-items:start}
     .footer-oss-grid .footer-oss{margin:0;max-width:none;text-align:left}
   }
   @media (min-width:1280px){
-    .intro-wrap{padding-top:88px}
-    .intro h1{font-size:clamp(3.2rem,3.6vw,4.4rem)}
-    .intro .lead{font-size:18px;max-width:680px}
+    .intro-wrap{padding-top:72px}
+    .intro h1{font-size:clamp(3rem,3.4vw,4rem)}
+    .intro .lead{font-size:18px;max-width:560px}
+    .hero{gap:72px}
     .intro-points{gap:26px}
     .intro-point{padding:28px 28px 30px}
   }
