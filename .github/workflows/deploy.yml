@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Stamp the service-worker cache version with the commit SHA so every
+      # deploy ships a byte-different sw.js -> the browser detects the update
+      # and the in-app "Neue Version verfügbar" toast fires automatically.
+      - name: Stamp service worker version
+        run: |
+          sed -i -E 's/const VERSION = "[^"]*"/const VERSION = "timelog-${{ github.sha }}"/' sw.js
+          grep 'const VERSION' sw.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

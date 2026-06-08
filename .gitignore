@@ -1,0 +1,7 @@
+# test / dev artifacts
+.playwright-mcp/
+tl-*.png
+.DS_Store
+
+# local agent / editor config
+.claude/

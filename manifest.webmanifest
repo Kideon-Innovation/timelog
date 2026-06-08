@@ -1,0 +1,44 @@
+{
+  "name": "TimeLog — Passive Zeiterfassung per Ping",
+  "short_name": "TimeLog",
+  "description": "Passive Zeiterfassung per Ping — pingt dich in festen Abständen und baut deinen Tag als Blöcke auf. Offline, ohne Login, Export als Excel.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0c0f",
+  "theme_color": "#0b0c0f",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Jetzt eintragen",
+      "short_name": "Eintragen",
+      "description": "Aktuellen Zeitblock sofort beschriften",
+      "url": "./?action=log",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Excel-Export",
+      "short_name": "Export",
+      "description": "Zeiterfassung als .xlsx exportieren",
+      "url": "./?action=export",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    { "src": "screenshots/desktop-dark.png", "sizes": "1440x900", "type": "image/png", "form_factor": "wide", "label": "3-Tage-Kalender mit Live-Blöcken" },
+    { "src": "screenshots/desktop-ping.png", "sizes": "1440x900", "type": "image/png", "form_factor": "wide", "label": "Ping — woran arbeitest du gerade?" },
+    { "src": "screenshots/mobile-dark.png", "sizes": "414x896", "type": "image/png", "form_factor": "narrow", "label": "Mobile Tagesansicht" },
+    { "src": "screenshots/mobile-ping.png", "sizes": "414x896", "type": "image/png", "form_factor": "narrow", "label": "Ping auf dem Handy" }
+  ]
+}
