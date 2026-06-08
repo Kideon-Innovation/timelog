@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#faf9f7" id="metaTheme">
 <meta name="color-scheme" content="dark light">
 <meta name="application-name" content="TimeLog">
-<meta name="description" content="Zeiterfassung für Kanzleien — TimeLog fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel als Blöcke auf. DSGVO-konform, weil alles lokal im Browser bleibt: kein Server, kein Login, voll offline. Export als Excel.">
+<meta name="description" content="Zeiterfassung für Kanzleien — TimeLog fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel automatisch auf. Was du einträgst, verlässt nie den Computer: kein Server, kein Konto. Gemacht für Berufsgeheimnisträger — die Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt. Läuft offline, Export als Excel.">
 <!-- iOS standalone -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -440,7 +440,7 @@
     <div class="trust">
       <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>DSGVO-konform</span>
       <span class="sep"></span>
-      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-5h6v5"/></svg>Für Kanzleien gemacht</span>
+      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg>Schützt das Mandantengeheimnis (§203)</span>
       <span class="sep"></span>
       <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9 19l-3-7 9-9-3 8 6-1-9 9 1-6-5-.5Z"/></svg>Funktioniert offline</span>
     </div>
@@ -448,7 +448,7 @@
     <div class="intro-points">
       <div class="intro-point">
         <h3><span class="pn">1</span> Jede vergessene Viertelstunde ist Honorar</h3>
-        <p>Manuelle Zeiterfassung zahlt sich nur aus, wenn du sie konsequent mitschreibst. Jeder ungetrackte Slot ist abrechenbare Zeit, die du nie auf die Rechnung bringst. TimeLog macht das Mitschreiben mühelos — es fragt dich, statt darauf zu warten, dass du dran denkst.</p>
+        <p>Manuelle Zeiterfassung zahlt sich nur aus, wenn du sie konsequent mitschreibst. Jede nicht erfasste Viertelstunde ist abrechenbare Zeit, die du nie auf die Rechnung bringst. TimeLog macht das Mitschreiben mühelos — es fragt dich, statt darauf zu warten, dass du dran denkst.</p>
       </div>
       <div class="intro-point">
         <h3><span class="pn">2</span> Automatik weiß nicht, für welchen Mandanten</h3>
@@ -478,13 +478,13 @@
       </div>
     </div>
 
-    <div class="intro-badge">🔒 Alles bleibt lokal im Browser — kein Server, kein Login. Mandantendaten verlassen dieses Gerät nie. Genau das macht TimeLog DSGVO-konform.</div>
+    <div class="intro-badge">🔒 Was du einträgst, verlässt nie diesen Computer. Kein Server, kein Konto — niemand außer dir kann die Mandantendaten sehen. Gemacht für Berufsgeheimnisträger: deine Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt, und DSGVO-konform ist es gleich mit.</div>
 
     <div class="intro-cta">
       <button class="btn amber" id="introStart">Loslegen →</button>
       <button class="btn" id="introInstall">↗ Als App installieren</button>
     </div>
-    <p class="intro-foot">Single-File-Tool · läuft offline · von <a href="https://kideon.de/" target="_blank" rel="noopener">Kideon</a></p>
+    <p class="intro-foot">Läuft offline · von <a href="https://kideon.de/" target="_blank" rel="noopener">Kideon</a></p>
   </div>
 </div>
 
@@ -522,8 +522,8 @@
           </label>
           <div class="menu-sep"></div>
           <button class="menu-item" id="themeBtn">🌙 Theme</button>
-          <button class="menu-item" id="notifyBtn">🔔 Notify</button>
-          <button class="menu-item" id="soundBtn">🔊 Ton an</button>
+          <button class="menu-item" id="notifyBtn">🔔 Erinnerungen anschalten</button>
+          <button class="menu-item" id="soundBtn">🔈 Ton ausschalten</button>
           <button class="menu-item" id="installBtn">↗ App installieren</button>
           <div class="menu-sep"></div>
           <button class="menu-item" id="exportBtn">↓ Excel-Export</button>
@@ -981,7 +981,7 @@ function openSinglePing(slot){
   inp.className="txt"; inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
   inp.placeholder="Stichwort … z. B. Meeting, Doku, Telefonat";
   body.appendChild(inp);
-  const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Slot leer gelassen"); };
+  const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
   body.appendChild(recentChips(v=>commit(v),null));
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter") commit(inp.value); });
 
@@ -996,7 +996,7 @@ function openSinglePing(slot){
 }
 
 function openCatchup(gaps){
-  $("pingKick").textContent="CATCH-UP · "+gaps.length+" SLOTS";
+  $("pingKick").textContent="NACHZUTRAGEN · "+gaps.length+(gaps.length===1?" EINTRAG":" EINTRÄGE");
   $("pingTitle").textContent="Was war seit eben los?";
   $("pingSub").textContent="Lücken der letzten 2 Stunden. Leer lassen ist ok — du warst evtl. nicht am PC.";
   const body=$("pingBody"); body.innerHTML="";
@@ -1023,7 +1023,7 @@ function openCatchup(gaps){
   const sp=document.createElement("div"); sp.className="spacer";
   const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Speichern";
   ok.onclick=()=>{ rows.forEach(r=>setBlock(r.slot,r.inp.value)); closePing(); render();
-    toast("Catch-up gespeichert"); };
+    toast("Nachtrag gespeichert"); };
   foot.append(skipAll,sp,ok);
 }
 
@@ -1187,7 +1187,7 @@ $("editSave").onclick=()=>{
   close("editScrim"); render();
 };
 $("editDel").onclick=()=>{ editing.blocks.forEach(b=>setBlock(new Date(b.start),""));
-  close("editScrim"); render(); toast(editing.blocks.length>1?"Block gelöscht ("+editing.blocks.length+" Slots)":"Block gelöscht"); };
+  close("editScrim"); render(); toast(editing.blocks.length>1?"Block gelöscht ("+editing.blocks.length+" Einträge)":"Block gelöscht"); };
 $("editCancel").onclick=()=>close("editScrim");
 $("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("editSave").click(); });
 
@@ -1204,7 +1204,7 @@ function exportRows(){
 }
 function updateExpCount(){ $("expCount").textContent=exportRows().length+" Blöcke im Zeitraum"; }
 function doExport(){
-  if(typeof XLSX==="undefined"){ toast("SheetJS nicht geladen (offline?)"); return; }
+  if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
   const rows=exportRows();
   if(!rows.length){ toast("Nichts zu exportieren"); return; }
   const data=[["Datum","Wochentag","Start","Ende","Dauer (min)","Tätigkeit"]];
@@ -1229,7 +1229,7 @@ function parseHM(v){ const m=String(v||"").trim().match(/^(\d{1,2}):(\d{2})$/);
   return m ? {h:+m[1],min:+m[2]} : null; }
 
 function importXlsx(file){
-  if(typeof XLSX==="undefined"){ toast("SheetJS nicht geladen (offline?)"); return; }
+  if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
   const reader=new FileReader();
   reader.onerror=()=>toast("Datei konnte nicht gelesen werden");
   reader.onload=ev=>{
@@ -1329,7 +1329,7 @@ function beep(){
 /* ---------- notification ---------- */
 function notify(n){
   if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
-  try{ new Notification("TimeLog — Ping",{body:n>1?(n+" Slots nachzutragen"):"Woran arbeitest du gerade?",
+  try{ new Notification("TimeLog — Ping",{body:n>1?(n+" Einträge nachzutragen"):"Woran arbeitest du gerade?",
     tag:"timelog-ping",renotify:true}); }catch(e){}
 }
 
@@ -1475,20 +1475,26 @@ function initInterval(){
 }
 
 $("soundBtn").onclick=()=>{ state.settings.soundOn=!state.settings.soundOn; save();
-  $("soundBtn").textContent=state.settings.soundOn?"🔊 Ton an":"🔈 Ton aus";
+  $("soundBtn").textContent=state.settings.soundOn?"🔈 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
-  if(state.settings.soundOn) beep(); refreshNotifyNudge(); toast("Ton "+(state.settings.soundOn?"an":"aus")); };
+  if(state.settings.soundOn) beep(); refreshNotifyNudge(); toast("Ton "+(state.settings.soundOn?"eingeschaltet":"ausgeschaltet")); };
 
 $("notifyBtn").onclick=async()=>{
-  if(!("Notification" in window)){ toast("Browser kann keine Notifications"); return; }
+  if(!("Notification" in window)){ toast("Dieser Browser kann keine Erinnerungen anzeigen"); return; }
+  // Real on/off toggle: if currently on, turn off; otherwise ask + turn on.
+  if(notifyGranted()){
+    state.settings.notifyOn=false; save(); refreshNotifyBtn();
+    toast("Erinnerungen ausgeschaltet"); return;
+  }
   let p=Notification.permission;
   if(p!=="granted") p=await Notification.requestPermission();
   state.settings.notifyOn=(p==="granted"); save(); refreshNotifyBtn();
-  toast(state.settings.notifyOn?"Benachrichtigungen an":"Abgelehnt");
+  toast(p==="denied" ? "Im Browser blockiert — bitte dort erlauben"
+                     : (state.settings.notifyOn?"Erinnerungen eingeschaltet":"Erinnerungen ausgeschaltet"));
 };
 function refreshNotifyBtn(){
   const on=state.settings.notifyOn && ("Notification" in window) && Notification.permission==="granted";
-  $("notifyBtn").textContent=on?"🔔 An":"🔔 Notify";
+  $("notifyBtn").textContent=on?"🔕 Erinnerungen ausschalten":"🔔 Erinnerungen anschalten";
   $("notifyBtn").classList.toggle("ghost",!on);
   refreshNotifyNudge();
 }
@@ -1519,9 +1525,9 @@ $("nudgeEnable").onclick=async()=>{
     state.settings.notifyOn=(p==="granted");
   }
   if(!state.settings.soundOn){ state.settings.soundOn=true;
-    $("soundBtn").textContent="🔊 Ton an"; $("soundBtn").classList.remove("ghost"); beep(); }
+    $("soundBtn").textContent="🔈 Ton ausschalten"; $("soundBtn").classList.remove("ghost"); beep(); }
   save(); refreshNotifyBtn();
-  if(notifyGranted()) toast("Benachrichtigungen an — du wirst jetzt erinnert");
+  if(notifyGranted()) toast("Erinnerungen eingeschaltet — du wirst jetzt erinnert");
   else { openMenu(); toast("Den Ping-Takt stellst du hier unter Blockgröße ein"); }
 };
 
@@ -1547,7 +1553,7 @@ function boot(){
   applyTheme();
   if(!state.settings.introSeen) showIntro();
   initInterval();
-  $("soundBtn").textContent=state.settings.soundOn?"🔊 Ton an":"🔈 Ton aus";
+  $("soundBtn").textContent=state.settings.soundOn?"🔈 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
   refreshNotifyBtn();
   recordBeat();                       // mark this slot alive on load
