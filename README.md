@@ -51,6 +51,11 @@ Lücken echte Pausen sind und welche noch nachzutragen sind.
    Zeitbereich auf und trägst einen Block über mehrere Zeitfenster nach.
 5. **Exportieren** — **↓ Excel** schreibt `Datum | Wochentag | Start | Ende | Dauer |
    Tätigkeit` als Excel-Datei, optional mit Datumsfilter.
+   - **↓ DATEV-Lohn** (im Export-Dialog ausklappbar) schreibt die Stunden pro Tag als
+     Semikolon-CSV für **DATEV Lohn und Gehalt** (`Personalnummer;Datum;Lohnart;Stunden`).
+     Personalnummer und Lohnart erfragst du bei deinem Lohnbüro; das Lohnbüro legt das
+     ASCII-Importformat einmalig fest. (DATEV-Leistungs-/Mandantenabrechnung hat keinen
+     offenen Datei-Import — nur über die zertifizierte DATEV-Partner-API.)
 
 ## Als App installieren
 
