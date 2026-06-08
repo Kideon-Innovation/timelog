@@ -1,6 +1,51 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Inline the app's bundled CSS straight into <head> as a <style> block and
+// drop the standalone hashed .css asset.
+//
+// WHY: the app shell used to be one self-contained index.html (CSS in a
+// <style> tag), so the markup and its styles always shipped — and cached —
+// as a single atomic document. When the CSS was extracted into its own
+// content-hashed file, HTML and CSS became independently cacheable. A burst
+// of deploys plus the auto-updating service worker / CDN could then hand a
+// client a NEW index.html paired with a STALE style.css (or vice-versa) —
+// the hero markup with pre-hero styles — which renders as a "broken" page
+// (unstyled CTA, oversized icons). Re-inlining the CSS restores the
+// atomic-shell guarantee: the styles can never desync from the markup.
+//
+// The JS entry stays external (the SW precaches it consistently); only the
+// render-blocking CSS — the part whose absence visibly wrecks the layout —
+// is inlined. Runs post-build so it sees the final hashed asset; deleting it
+// from the bundle means it's never written, so vite-plugin-pwa (which scans
+// the output dir) won't try to precache a file that no longer exists.
+function inlineAppCss() {
+  return {
+    name: 'timelog-inline-app-css',
+    apply: 'build',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        const bundle = ctx.bundle;
+        if (!bundle) return html;
+        return html.replace(
+          /<link\b[^>]*\brel="stylesheet"[^>]*\bhref="([^"]+\.css)"[^>]*>/g,
+          (tag, href) => {
+            const base = href.split('/').pop();
+            const key = Object.keys(bundle).find((k) => k.split('/').pop() === base);
+            const asset = key && bundle[key];
+            if (!asset || asset.type !== 'asset') return tag; // leave untouched if not found
+            const css = String(asset.source);
+            delete bundle[key]; // don't emit the standalone file
+            return `<style>${css}</style>`;
+          }
+        );
+      },
+    },
+  };
+}
+
 // TimeLog ships to GitHub Pages under the /timelog/ subpath. The single
 // index.html stays the app; Vite just hashes external assets, rewrites the
 // base path, and (via vite-plugin-pwa) generates a Workbox service worker
@@ -15,6 +60,7 @@ export default defineConfig({
   },
 
   plugins: [
+    inlineAppCss(),
     VitePWA({
       // autoUpdate + skipWaiting/clientsClaim (below) => a new deploy installs,
       // takes control immediately and the client reloads to the fresh version
