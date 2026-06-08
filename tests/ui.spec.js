@@ -39,12 +39,29 @@ test('toggle menu items reflect on/off state via aria-pressed', async ({ page })
   await seed(page, 'dark');
   await page.keyboard.press('Escape'); // close any auto modal
   await page.click('#menuBtn');
-  // theme is dark → themeBtn aria-pressed true
-  await expect(page.locator('#themeBtn')).toHaveAttribute('aria-pressed', 'true');
   // sound is on → soundBtn aria-pressed true
   await expect(page.locator('#soundBtn')).toHaveAttribute('aria-pressed', 'true');
   // notifications off → notifyBtn aria-pressed false
   await expect(page.locator('#notifyBtn')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('theme button is labelled by the action it performs (no ambiguous aria-pressed)', async ({ page }) => {
+  // Theme is a switch-to-the-other-mode action, not a stateful checkbox: an
+  // aria-pressed "🌙 Theme" was ambiguous (pressed = which mode?). It now labels
+  // the target mode and drops aria-pressed so AT announces a clear action.
+  await seed(page, 'dark');
+  await page.keyboard.press('Escape');
+  await page.click('#menuBtn');
+  const btn = page.locator('#themeBtn');
+  await expect(btn).not.toHaveAttribute('aria-pressed', /.*/);
+  // In dark mode the action is "switch to light".
+  await expect(btn).toHaveText(/Helles Design/);
+  await expect(btn).toHaveAttribute('aria-label', /hellem Design/);
+  // Activating it flips the label to the opposite action.
+  await btn.click();
+  await page.click('#menuBtn');
+  await expect(btn).toHaveText(/Dunkles Design/);
+  await expect(btn).toHaveAttribute('aria-label', /dunklem Design/);
 });
 
 test('pinned modal footer stays visible with a long catch-up list', async ({ page }) => {

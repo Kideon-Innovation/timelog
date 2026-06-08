@@ -72,8 +72,10 @@ function renderLegend(){
   state.blocks.forEach(b=>{ const d=new Date(b.start); if(days.some(x=>sameDay(x,d))) labels.add(b.label); });
   const el=$("legend"); el.innerHTML="";
   [...labels].slice(0,8).forEach(l=>{
-    const c=document.createElement("span"); c.className="chip";
-    c.innerHTML=`<span class="sw" style="background:${colorFor(l)}"></span>${l}`;
+    const c=document.createElement("span"); c.className="chip"; c.title=l;
+    const sw=document.createElement("span"); sw.className="sw"; sw.style.background=colorFor(l);
+    const lbl=document.createElement("span"); lbl.className="lbl"; lbl.textContent=l;
+    c.append(sw,lbl);
     el.appendChild(c);
   });
 }
@@ -123,7 +125,9 @@ function renderCalendar(){
       b.style.top=(run.startMin*PX_PER_MIN)+"px";
       b.style.height=Math.max(2,(run.endMin-run.startMin)*PX_PER_MIN-1)+"px";
       b.setAttribute("role","img");
-      b.tabIndex=0; // keyboard-focusable so the custom tooltip shows on focus
+      // Not in the tab order — dozens of beat-runs would flood keyboard traversal.
+      // Still SR-discoverable via role=img + aria-label; the tooltip is hover-only.
+      b.tabIndex=-1;
       b.setAttribute("aria-label","Aktivitätsspur "+range
         +": in dieser Zeit war TimeLog geöffnet. So siehst du, welche Lücken echte Pausen sind und was du noch nachtragen kannst.");
       // custom instant tooltip — NO native title (which has a ~1s browser delay)
@@ -190,12 +194,12 @@ function recentChips(onPick, current){
   const last=lastLabel();
   if(last){
     const b=document.createElement("button"); b.className="chip-b same";
-    b.textContent="↻ Weiter wie eben — "+last;
+    b.textContent="↻ Weiter wie eben — "+last; b.title=last;
     b.onclick=()=>onPick(last); wrap.appendChild(b);
   }
   state.recentLabels.filter(l=>l!==last).slice(0,8).forEach(l=>{
     const b=document.createElement("button"); b.className="chip-b";
-    b.style.setProperty("--bc",colorFor(l)); b.textContent=l;
+    b.style.setProperty("--bc",colorFor(l)); b.textContent=l; b.title=l;
     b.onclick=()=>onPick(l); wrap.appendChild(b);
   });
   return wrap;
@@ -410,7 +414,7 @@ function openEdit(seg){
   const chips=$("editChips"); chips.innerHTML="";
   state.recentLabels.slice(0,8).forEach(l=>{
     const c=document.createElement("button"); c.className="chip-b"; c.style.setProperty("--bc",colorFor(l));
-    c.textContent=l; c.onclick=()=>{ inp.value=l; }; chips.appendChild(c);
+    c.textContent=l; c.title=l; c.onclick=()=>{ inp.value=l; }; chips.appendChild(c);
   });
 
   // per-slot rows (only when the block spans more than one slot)
@@ -515,7 +519,17 @@ function exportRows(){
   return [...state.blocks].sort((a,b)=>new Date(a.start)-new Date(b.start))
     .filter(b=>{ const s=new Date(b.start); return (!from||s>=from)&&(!to||s<=to); });
 }
-function updateExpCount(){ $("expCount").textContent=exportRows().length+" Blöcke im Zeitraum"; }
+function updateExpCount(){
+  const fromV=$("expFrom").value, toV=$("expTo").value, el=$("expCount");
+  if(fromV && toV && fromV>toV){
+    // Inverted range silently yields 0 — point the user at the swapped dates.
+    el.textContent="„Von“ liegt nach „Bis“ — bitte Zeitraum prüfen.";
+    el.classList.add("warn");
+    return;
+  }
+  el.classList.remove("warn");
+  el.textContent=exportRows().length+" Blöcke im Zeitraum";
+}
 function doExport(){
   if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
   const rows=exportRows();
@@ -740,10 +754,13 @@ function todayKey(){ return iso(startOfDay(new Date())).slice(0,10); }
 
 /* In-app nudge: at most once per day, dismissible, re-appears next day if still
    overdue. Notification fires once per day too (same day-gate), best-effort. */
+function exportNudgeWants(){
+  return exportOverdue()
+      && state.settings.exportReminderDay !== todayKey()
+      && !$("intro").classList.contains("show");
+}
 function refreshExportReminder(){
-  const show = exportOverdue()
-            && state.settings.exportReminderDay !== todayKey()
-            && !$("intro").classList.contains("show");
+  const show = exportNudgeWants();
   $("exportNudge").hidden = !show;
   if(show){
     const d=daysSinceExport();
@@ -752,6 +769,9 @@ function refreshExportReminder(){
       + "damit nichts verloren geht. Sie liegen nur auf diesem Gerät.";
     notifyExportOverdue(d);
   }
+  // Only ONE banner at a time: the data-loss nudge wins, so re-sync the
+  // notifications nudge (it hides itself while the export nudge is up).
+  refreshNotifyNudge();
 }
 function notifyExportOverdue(days){
   if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
@@ -895,8 +915,11 @@ window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout
 function applyTheme(){
   const dark=state.settings.theme==="dark";
   document.documentElement.setAttribute("data-theme", dark?"dark":"light");
-  $("themeBtn").textContent=dark?"🌙 Theme":"☀️ Theme";
-  $("themeBtn").setAttribute("aria-pressed", dark?"true":"false");
+  // Label by the action the button performs, so SR users hear what activating it does.
+  const btn=$("themeBtn");
+  btn.textContent=dark?"☀️ Helles Design":"🌙 Dunkles Design";
+  btn.setAttribute("aria-label", dark?"Zu hellem Design wechseln":"Zu dunklem Design wechseln");
+  btn.removeAttribute("aria-pressed");
   // tint the OS status bar / window chrome to match the app
   const meta=$("metaTheme"); if(meta) meta.setAttribute("content", dark?"#0f2137":"#faf9f7");
 }
@@ -953,8 +976,11 @@ function notifyGranted(){
 }
 function refreshNotifyNudge(){
   const supported = "Notification" in window;
+  // Only ONE banner at a time — the export/data-loss nudge takes priority, so
+  // hold this one back whenever that one is (or would be) showing.
   const show = supported && !notifyGranted() && !state.settings.notifyNudgeDismissed
-            && !$("intro").classList.contains("show");
+            && !$("intro").classList.contains("show")
+            && !exportNudgeWants();
   $("notifyNudge").hidden = !show;
   if(show){
     // sound is the fallback ping channel — mention it if that's off too
