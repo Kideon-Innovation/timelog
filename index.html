@@ -81,6 +81,18 @@
     color-scheme:dark;
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  /* Keyboard focus ring — visible only for keyboard/AT users (:focus-visible),
+     so mouse clicks stay clean. Reuses the accent + accent-soft tokens so it
+     reads on both themes. Applies to every interactive control. */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  a:focus-visible,button:focus-visible,.menu-item:focus-visible,.chip-b:focus-visible,
+  .nudge-x:focus-visible,.gaprow .skip:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;
+    box-shadow:0 0 0 4px var(--accent-soft)}
+  /* form fields already have an inner glow on :focus; give them the ring too for
+     keyboard users without doubling up the box-shadow */
+  input.txt:focus-visible,select.txt:focus-visible,.gaprow input:focus-visible,
+  input[type=date]:focus-visible,.hsel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   html,body{height:100%}
   body{
     background:
@@ -182,6 +194,14 @@
   }
   .menu-item:hover{background:var(--bg-sunken)}
   .menu-item.ghost{opacity:.5}
+  /* Toggle menu-items expose their state via aria-pressed; mirror it visually
+     with a trailing check so on/off is obvious at a glance (not just via the
+     wording change). */
+  .menu-item[aria-pressed]{justify-content:flex-start}
+  .menu-item[aria-pressed]::after{content:"";margin-left:auto;width:15px;height:15px;flex:0 0 auto;
+    border-radius:5px;border:1.5px solid var(--line);background:var(--bg-sunken)}
+  .menu-item[aria-pressed="true"]::after{border-color:var(--accent);background:var(--accent);
+    content:"✓";color:var(--on-accent);font-size:11px;font-weight:700;line-height:13px;text-align:center}
 
   /* ---------- date nav ---------- */
   .subbar{display:flex;align-items:center;gap:14px;padding:11px 24px;border-bottom:1px solid var(--line);
@@ -204,7 +224,7 @@
   .nudge[hidden]{display:none}
   .nudge .nudge-ic{font-size:15px;flex:0 0 auto}
   .nudge .nudge-txt{flex:1;min-width:0}
-  .nudge .nudge-txt em{font-style:normal;color:var(--text-faint)}
+  .nudge .nudge-txt em{font-style:normal;color:var(--text-dim)}
   .nudge .nudge-act{height:30px;padding:0 14px;font-size:12.5px;flex:0 0 auto}
   .nudge .nudge-x{flex:0 0 auto;width:28px;height:28px;border:0;border-radius:7px;cursor:pointer;
     background:transparent;color:var(--text-faint);font-size:18px;line-height:1;transition:.13s}
@@ -223,7 +243,7 @@
   /* ---------- calendar ---------- */
   .cal-wrap{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
   .cal-wrap::-webkit-scrollbar{width:11px}
-  .cal-wrap::-webkit-scrollbar-thumb{background:#322a20;border-radius:6px;border:3px solid var(--bg)}
+  .cal-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:3px solid var(--bg)}
   .cal{display:grid;grid-template-columns:60px repeat(3,1fr);position:relative;min-height:100%}
 
   .col-head{position:sticky;top:0;z-index:6;background:var(--bg);
@@ -279,6 +299,7 @@
   .empty-hint{position:absolute;left:50%;top:38%;transform:translateX(-50%);text-align:center;
     color:var(--text-faint);width:80%}
   .empty-hint .em{font-family:'Instrument Serif';font-size:19px;font-style:italic;color:var(--text-dim)}
+  .empty-hint .empty-sub{margin-top:6px;font-size:12px;line-height:1.4;color:var(--text-faint)}
 
   /* ---------- modal ---------- */
   .scrim{position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(3px);
@@ -286,17 +307,22 @@
   .scrim.show{display:flex;animation:fade .18s ease}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  /* Flex column so header + footer stay pinned and only the body (.modal-b)
+     scrolls — keeps the action footer ("Speichern" etc.) always reachable even
+     when the catch-up list is long. */
   .modal{background:linear-gradient(180deg,var(--bg-raised),var(--bg));border:1px solid var(--line);
-    border-radius:16px;box-shadow:var(--shadow);width:min(560px,100%);max-height:88vh;overflow:auto;
+    border-radius:16px;box-shadow:var(--shadow);width:min(560px,100%);max-height:88vh;overflow:hidden;
+    display:flex;flex-direction:column;
     animation:pop .22s cubic-bezier(.2,.8,.2,1)}
-  .modal::-webkit-scrollbar{width:10px}
-  .modal::-webkit-scrollbar-thumb{background:#322a20;border-radius:6px;border:3px solid var(--bg-raised)}
-  .modal-h{padding:22px 24px 8px}
+  .modal-b::-webkit-scrollbar{width:10px}
+  .modal-b::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:3px solid var(--bg)}
+  .modal-h{padding:22px 24px 8px;flex:0 0 auto}
   .modal-h .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
   .modal-h h2{font-family:'Instrument Serif';font-weight:400;font-size:27px;margin-top:3px}
   .modal-h p{color:var(--text-dim);font-size:13px;margin-top:4px}
-  .modal-b{padding:8px 24px 4px}
-  .modal-f{padding:16px 24px 22px;display:flex;gap:10px;align-items:center}
+  .modal-b{padding:8px 24px 4px;overflow-y:auto;flex:1 1 auto;min-height:0}
+  .modal-f{padding:16px 24px 22px;display:flex;gap:10px;align-items:center;flex:0 0 auto;
+    border-top:1px solid var(--line-soft)}
 
   input.txt,select.txt{
     width:100%;background:var(--bg-sunken);border:1px solid var(--line);border-radius:10px;
@@ -317,7 +343,9 @@
     color:var(--text);font-size:13.5px;padding:9px 11px;outline:none}
   .gaprow input:focus{border-color:var(--accent)}
   .gaprow input::placeholder{color:var(--text-faint)}
-  .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:11px;cursor:pointer;padding:6px}
+  .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:11px;cursor:pointer;padding:6px;
+    background:transparent;border:0;border-radius:7px;font-family:inherit;line-height:1}
+  .gaprow .skip:hover{color:var(--text);background:var(--bg-sunken)}
   .gaprow.done{opacity:.4}
 
   .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -697,7 +725,7 @@
   </div>
 </div>
 
-<div class="app">
+<div class="app" id="app">
   <header>
     <div class="brand">
       <span class="dot"></span>
@@ -778,7 +806,7 @@
 
 <!-- Ping / Catch-up modal -->
 <div class="scrim" id="pingScrim">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pingTitle">
     <div class="modal-h">
       <div class="kick" id="pingKick">15-MINUTEN-PING</div>
       <h2 id="pingTitle">Woran arbeitest du gerade?</h2>
@@ -791,7 +819,7 @@
 
 <!-- Edit block modal -->
 <div class="scrim" id="editScrim">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTime">
     <div class="modal-h">
       <div class="kick">BLOCK BEARBEITEN</div>
       <h2 id="editTime">—</h2>
@@ -816,10 +844,10 @@
 
 <!-- Export modal -->
 <div class="scrim" id="exportScrim">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
     <div class="modal-h">
       <div class="kick">EXPORT</div>
-      <h2>Als Excel exportieren</h2>
+      <h2 id="exportTitle">Als Excel exportieren</h2>
       <p>Zeitraum wählen — leer lassen für alles.</p>
     </div>
     <div class="modal-b">
@@ -840,7 +868,7 @@
 
 <!-- Install help modal (iOS / fallback) -->
 <div class="scrim" id="installScrim">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
     <div class="modal-h">
       <div class="kick">INSTALLIEREN</div>
       <h2 id="installTitle">TimeLog als App</h2>
@@ -1035,8 +1063,14 @@ function renderHeaderClock(){
 
 function renderRange(){
   const a=anchor, b=addDays(anchor,DAY_COLS-1);
-  $("rangeLabel").innerHTML = a.getDate()+". "+(a.getMonth()!=b.getMonth()?MON[a.getMonth()]+" ":"")+
-    "<em>–</em> "+b.getDate()+". "+MON[b.getMonth()]+" "+b.getFullYear();
+  if(DAY_COLS===1){
+    // Single-day view (mobile): show one dated label with weekday — a dash range
+    // ("8. – 8. Jun") reads as a bug.
+    $("rangeLabel").innerHTML = DOW[a.getDay()]+", "+a.getDate()+". "+MON[a.getMonth()]+" "+a.getFullYear();
+  } else {
+    $("rangeLabel").innerHTML = a.getDate()+". "+(a.getMonth()!=b.getMonth()?MON[a.getMonth()]+" ":"")+
+      "<em>–</em> "+b.getDate()+". "+MON[b.getMonth()]+" "+b.getFullYear();
+  }
   $("datePick").value = iso(a).slice(0,10);
 }
 
@@ -1127,9 +1161,13 @@ function renderCalendar(){
       col.appendChild(el);
     });
 
-    if(!dayBlocks.length && !isToday){
+    if(!dayBlocks.length){
+      // Empty day → onboarding hint. Today gets a slightly warmer welcome so a
+      // new user landing on a blank "today" isn't left without guidance.
       const eh=document.createElement("div"); eh.className="empty-hint";
-      eh.innerHTML=`<div class="em">ziehen zum Eintragen</div>`;
+      eh.innerHTML = isToday
+        ? `<div class="em">Noch nichts erfasst</div><div class="empty-sub">ziehen zum Eintragen · oder „+ Jetzt eintragen"</div>`
+        : `<div class="em">ziehen zum Eintragen</div>`;
       col.appendChild(eh);
     }
     attachDrag(col,day);
@@ -1196,7 +1234,7 @@ function openPing(triggeredByTimer){
   if(!gaps.length){ if(!triggeredByTimer) openLogNow(); return; }
   if(gaps.length===1) openSinglePing(gaps[0]);
   else openCatchup(gaps);
-  $("pingScrim").classList.add("show");
+  openScrim("pingScrim");
 }
 
 function openSinglePing(slot){
@@ -1234,8 +1272,9 @@ function openCatchup(gaps){
     const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
     const inp=document.createElement("input"); inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
     inp.placeholder="Stichwort …";
-    const skip=document.createElement("span"); skip.className="skip"; skip.textContent="✕";
-    skip.title="leer lassen"; skip.onclick=()=>{ inp.value=""; row.classList.add("done"); };
+    const skip=document.createElement("button"); skip.type="button"; skip.className="skip"; skip.textContent="✕";
+    skip.title="leer lassen"; skip.setAttribute("aria-label","Diesen Eintrag leer lassen ("+hhmm(slot)+"–"+hhmm(end)+")");
+    skip.onclick=()=>{ inp.value=""; row.classList.add("done"); };
     row.append(tg,inp,skip);
     body.appendChild(row);
     return {slot,inp,row};
@@ -1356,17 +1395,17 @@ function openRangeEntry(s,e){
   const sp=document.createElement("div"); sp.className="spacer";
   const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Eintragen"; ok.onclick=()=>commit(inp.value);
   foot.append(del,sp,ok);
-  $("pingScrim").classList.add("show"); setTimeout(()=>inp.focus(),60);
+  openScrim("pingScrim"); setTimeout(()=>inp.focus(),60);
 }
 
 function openLogNow(){
   // manual: log the current (ongoing) slot
   openSinglePing(floorSlot(new Date()));
-  $("pingScrim").classList.add("show");
+  openScrim("pingScrim");
   $("pingKick").textContent="MANUELL EINTRAGEN";
   $("pingTitle").textContent="Woran arbeitest du gerade?";
 }
-function closePing(){ $("pingScrim").classList.remove("show"); }
+function closePing(){ closeScrim("pingScrim"); }
 
 /* ============================================================
    EDIT BLOCK
@@ -1398,7 +1437,8 @@ function openEdit(seg){
       const row=document.createElement("div"); row.className="gaprow";
       const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(bs)+"–"+hhmm(be);
       const ri=document.createElement("input"); ri.setAttribute("list","labelList"); ri.setAttribute("autocomplete","off"); ri.value=b.label;
-      const x=document.createElement("span"); x.className="skip"; x.textContent="✕"; x.title="diesen Block löschen";
+      const x=document.createElement("button"); x.type="button"; x.className="skip"; x.textContent="✕";
+      x.title="diesen Block löschen"; x.setAttribute("aria-label","Diesen Block löschen ("+hhmm(bs)+"–"+hhmm(be)+")");
       x.onclick=()=>{ ri.value=""; row.classList.add("done"); };
       ri.addEventListener("input",()=>row.classList.remove("done"));
       row.append(tg,ri,x); slots.appendChild(row);
@@ -1406,7 +1446,7 @@ function openEdit(seg){
     });
   } else { $("editAll").style.display="none"; $("editBulkHint").textContent=""; }
 
-  $("editScrim").classList.add("show"); setTimeout(()=>inp.focus(),60);
+  openScrim("editScrim"); setTimeout(()=>inp.focus(),60);
 }
 $("editAll").onclick=()=>{ editRows.forEach(r=>{ r.input.value=$("editInput").value; r.input.parentElement.classList.remove("done"); }); };
 $("editSave").onclick=()=>{
@@ -1419,7 +1459,54 @@ $("editDel").onclick=()=>{ editing.blocks.forEach(b=>setBlock(new Date(b.start),
 $("editCancel").onclick=()=>close("editScrim");
 $("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("editSave").click(); });
 
-function close(id){ $(id).classList.remove("show"); }
+/* ============================================================
+   MODAL / DIALOG a11y: focus trap + inert background + focus restore.
+   All scrims open/close through openScrim/closeScrim so the behaviour is
+   identical everywhere. Visual/a11y only — does not change WHAT a dialog does.
+   ============================================================ */
+let _modalOpener=null;
+function openScrims(){ return [...document.querySelectorAll(".scrim.show")]; }
+function focusables(container){
+  return [...container.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(el=>el.offsetParent!==null || el===document.activeElement);
+}
+function openScrim(id){
+  const scrim=$(id); if(scrim.classList.contains("show")) return;
+  // remember who opened it so we can restore focus on close
+  if(!openScrims().length) _modalOpener=document.activeElement;
+  scrim.classList.add("show");
+  // background out of the a11y tree + tab order while a modal is up
+  const app=$("app"); app.setAttribute("aria-hidden","true");
+  try{ app.inert=true; }catch(e){}
+}
+function closeScrim(id){
+  const scrim=$(id); if(!scrim) return;
+  scrim.classList.remove("show");
+  if(!openScrims().length){
+    const app=$("app"); app.removeAttribute("aria-hidden");
+    try{ app.inert=false; }catch(e){}
+    // Restore focus to the opener. If it's gone/hidden (e.g. a menu item that
+    // closed with the menu), fall back to the menu button so focus stays
+    // somewhere visible and sensible instead of landing on <body>.
+    let target=_modalOpener;
+    if(!target || target.offsetParent===null || typeof target.focus!=="function") target=$("menuBtn");
+    if(target){ try{ target.focus(); }catch(e){} }
+    _modalOpener=null;
+  }
+}
+function close(id){ closeScrim(id); }
+// Trap Tab inside the top-most open dialog.
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Tab") return;
+  const open=openScrims(); if(!open.length) return;
+  const modal=open[open.length-1].querySelector(".modal")||open[open.length-1];
+  const f=focusables(modal); if(!f.length){ e.preventDefault(); return; }
+  const first=f[0], last=f[f.length-1], a=document.activeElement;
+  if(!modal.contains(a)){ e.preventDefault(); first.focus(); return; }
+  if(e.shiftKey && a===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && a===last){ e.preventDefault(); first.focus(); }
+});
 
 /* ============================================================
    EXPORT (xlsx via SheetJS)
@@ -1630,7 +1717,7 @@ function notifyExportOverdue(days){
   }catch(e){}
 }
 $("exportNudgeDismiss").onclick=()=>{ state.settings.exportReminderDay=todayKey(); save(); refreshExportReminder(); };
-$("exportNudgeGo").onclick=()=>{ updateExpCount(); $("exportScrim").classList.add("show"); };
+$("exportNudgeGo").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 
 /* ---------- toast ---------- */
 let toastT=null;
@@ -1645,7 +1732,7 @@ $("nextBtn").onclick=()=>{ anchor=addDays(anchor,DAY_COLS); render(); };
 $("todayBtn").onclick=()=>{ anchor=startOfDay(new Date()); render(); scrollToNow(); };
 $("datePick").onchange=e=>{ if(e.target.value){ anchor=startOfDay(new Date(e.target.value+"T00:00:00")); render(); } };
 $("logNowBtn").onclick=()=>openLogNow();
-$("exportBtn").onclick=()=>{ updateExpCount(); $("exportScrim").classList.add("show"); };
+$("exportBtn").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 $("expCancel").onclick=()=>close("exportScrim");
 $("expAll").onclick=()=>{ $("expFrom").value=""; $("expTo").value=""; updateExpCount(); };
 $("expGo").onclick=doExport;
@@ -1732,7 +1819,7 @@ function openInstallHelp(){
            'Bestätigen — TimeLog läuft danach offline im eigenen Fenster.'];
   }
   $("installBody").innerHTML='<ul class="ioslist">'+steps.map(s=>"<li>"+s+"</li>").join("")+'</ul>';
-  $("installScrim").classList.add("show");
+  openScrim("installScrim");
 }
 
 // re-render when crossing the mobile/desktop breakpoint
@@ -1752,6 +1839,7 @@ function applyTheme(){
   const dark=state.settings.theme==="dark";
   document.documentElement.setAttribute("data-theme", dark?"dark":"light");
   $("themeBtn").textContent=dark?"🌙 Theme":"☀️ Theme";
+  $("themeBtn").setAttribute("aria-pressed", dark?"true":"false");
   // tint the OS status bar / window chrome to match the app
   const meta=$("metaTheme"); if(meta) meta.setAttribute("content", dark?"#0f2137":"#faf9f7");
 }
@@ -1770,9 +1858,13 @@ function initInterval(){
   };
 }
 
-$("soundBtn").onclick=()=>{ state.settings.soundOn=!state.settings.soundOn; save();
+function refreshSoundBtn(){
   $("soundBtn").textContent=state.settings.soundOn?"🔇 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
+  $("soundBtn").setAttribute("aria-pressed", state.settings.soundOn?"true":"false");
+}
+$("soundBtn").onclick=()=>{ state.settings.soundOn=!state.settings.soundOn; save();
+  refreshSoundBtn();
   if(state.settings.soundOn) beep(); refreshNotifyNudge(); toast("Ton "+(state.settings.soundOn?"eingeschaltet":"ausgeschaltet")); };
 
 $("notifyBtn").onclick=async()=>{
@@ -1792,6 +1884,7 @@ function refreshNotifyBtn(){
   const on=state.settings.notifyOn && ("Notification" in window) && Notification.permission==="granted";
   $("notifyBtn").textContent=on?"🔕 Erinnerungen ausschalten":"🔔 Erinnerungen anschalten";
   $("notifyBtn").classList.toggle("ghost",!on);
+  $("notifyBtn").setAttribute("aria-pressed", on?"true":"false");
   refreshNotifyNudge();
 }
 
@@ -1820,16 +1913,15 @@ $("nudgeEnable").onclick=async()=>{
     if(p!=="granted") p=await Notification.requestPermission();
     state.settings.notifyOn=(p==="granted");
   }
-  if(!state.settings.soundOn){ state.settings.soundOn=true;
-    $("soundBtn").textContent="🔇 Ton ausschalten"; $("soundBtn").classList.remove("ghost"); beep(); }
+  if(!state.settings.soundOn){ state.settings.soundOn=true; refreshSoundBtn(); beep(); }
   save(); refreshNotifyBtn();
   if(notifyGranted()) toast("Erinnerungen eingeschaltet — du wirst jetzt erinnert");
   else { openMenu(); toast("Den Ping-Takt stellst du hier unter Blockgröße ein"); }
 };
 
 // close scrim on backdrop click / Esc
-document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("mousedown",e=>{ if(e.target===s) s.classList.remove("show"); }));
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ document.querySelectorAll(".scrim.show").forEach(s=>s.classList.remove("show")); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
+document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("mousedown",e=>{ if(e.target===s) closeScrim(s.id); }));
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ openScrims().forEach(s=>closeScrim(s.id)); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
 
 // returning to tab → catch up
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
@@ -1849,8 +1941,7 @@ function boot(){
   applyTheme();
   if(!state.settings.introSeen) showIntro();
   initInterval();
-  $("soundBtn").textContent=state.settings.soundOn?"🔇 Ton ausschalten":"🔊 Ton anschalten";
-  $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
+  refreshSoundBtn();
   refreshNotifyBtn();
   refreshExportReminder();            // remind to export if overdue (once/day)
   recordBeat();                       // mark this slot alive on load
@@ -1867,7 +1958,7 @@ function boot(){
   // manifest shortcuts: ?action=log | export
   const action=new URLSearchParams(location.search).get("action");
   if(action==="log"){ setTimeout(openLogNow,350); }
-  else if(action==="export"){ setTimeout(()=>{ updateExpCount(); $("exportScrim").classList.add("show"); },350); }
+  else if(action==="export"){ setTimeout(()=>{ updateExpCount(); openScrim("exportScrim"); },350); }
   else { setTimeout(()=>{ if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); }, 900); }  // initial catch-up
 }
 boot();
