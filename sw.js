@@ -1,6 +1,6 @@
 /* TimeLog service worker — offline app shell + runtime font cache.
    All shell URLs are relative so the same file works on a GitHub Pages
-   subpath (…/timelogging/) and on any other origin without edits. */
+   subpath (…/timelog/) and on any other origin without edits. */
 "use strict";
 
 const VERSION = "timelog-v1";
