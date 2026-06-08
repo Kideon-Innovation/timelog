@@ -17,7 +17,7 @@ komplett **offline**.
 Der Takt ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15). Kürzerer Takt =
 feinere Auflösung, häufigere Nachfragen.
 
-![TimeLog – 3-Tage-Kalender](screenshots/desktop-dark.png)
+![TimeLog – 3-Tage-Kalender](public/screenshots/desktop-dark.png)
 
 ## Idee
 
@@ -67,7 +67,7 @@ komplett offline.
 
 | Tagesansicht (Mobile) | Nachfrage | Installations-Hilfe |
 |---|---|---|
-| ![](screenshots/mobile-dark.png) | ![](screenshots/mobile-ping.png) | ![](screenshots/mobile-install.png) |
+| ![](public/screenshots/mobile-dark.png) | ![](public/screenshots/mobile-ping.png) | ![](public/screenshots/mobile-install.png) |
 
 ## Features
 
@@ -85,7 +85,7 @@ komplett offline.
 - Hell-/Dunkel-Ansicht, Schnellauswahl der zuletzt genutzten Tätigkeiten.
 - Excel-Export mit Datumsfilter.
 
-![TimeLog – Light Theme](screenshots/desktop-light.png)
+![TimeLog – Light Theme](public/screenshots/desktop-light.png)
 
 ## Berufsgeheimnis (§203) & Datenschutz
 
