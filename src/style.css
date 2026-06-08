@@ -332,10 +332,16 @@
     color:var(--text);font-size:13.5px;padding:9px 11px;outline:none}
   .gaprow input:focus{border-color:var(--accent)}
   .gaprow input::placeholder{color:var(--text-faint)}
-  .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:11px;cursor:pointer;padding:6px;
-    background:transparent;border:0;border-radius:7px;font-family:inherit;line-height:1}
+  .gaprow input:disabled{cursor:default;color:var(--text-faint)}
+  .gaprow .skip{flex:0 0 auto;color:var(--text-faint);font-size:13px;cursor:pointer;padding:6px 8px;
+    background:transparent;border:1px solid transparent;border-radius:7px;font-family:inherit;line-height:1}
   .gaprow .skip:hover{color:var(--text);background:var(--bg-sunken)}
-  .gaprow.done{opacity:.4}
+  /* skipped row: clearly inactive, but recoverable via the ↩ toggle */
+  .gaprow.done input{opacity:.45;text-decoration:line-through}
+  .gaprow.done .tg{opacity:.45}
+  .gaprow.done .skip{color:var(--accent);border-color:var(--line);opacity:1}
+  .gaprow.done .skip:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .gaprow.done input::placeholder{opacity:.7;font-style:italic}
 
   .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{background:var(--bg-raised);border:0;color:var(--text-dim);padding:8px 12px;cursor:pointer;font-size:12px;font-family:inherit}

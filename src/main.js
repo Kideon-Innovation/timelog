@@ -176,7 +176,6 @@ function render(){
   renderRange();
   renderLegend();
   renderCalendar();
-  renderDatalist();
 }
 
 function renderHeaderClock(){
@@ -334,10 +333,6 @@ function beatRuns(day){
   return runs;
 }
 
-function renderDatalist(){
-  $("labelList").innerHTML=state.recentLabels.map(l=>`<option value="${esc(l)}">`).join("");
-}
-
 /* ============================================================
    PING / CATCH-UP
    ============================================================ */
@@ -372,7 +367,7 @@ function openSinglePing(slot){
   $("pingSub").textContent=hhmm(slot)+" – "+hhmm(end)+" · "+DOW[slot.getDay()]+" "+slot.getDate()+". "+MON[slot.getMonth()];
   const body=$("pingBody"); body.innerHTML="";
   const inp=document.createElement("input");
-  inp.className="txt"; inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
+  inp.className="txt"; inp.setAttribute("autocomplete","off");
   inp.placeholder="Stichwort … z. B. Meeting, Doku, Telefonat";
   body.appendChild(inp);
   const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
@@ -398,11 +393,25 @@ function openCatchup(gaps){
     const end=new Date(slot.getTime()+SLOT_MIN*60000);
     const row=document.createElement("div"); row.className="gaprow";
     const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
-    const inp=document.createElement("input"); inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
+    const inp=document.createElement("input"); inp.setAttribute("autocomplete","off");
     inp.placeholder="Stichwort …";
-    const skip=document.createElement("button"); skip.type="button"; skip.className="skip"; skip.textContent="✕";
-    skip.title="leer lassen"; skip.setAttribute("aria-label","Diesen Eintrag leer lassen ("+hhmm(slot)+"–"+hhmm(end)+")");
-    skip.onclick=()=>{ inp.value=""; row.classList.add("done"); };
+    const range="("+hhmm(slot)+"–"+hhmm(end)+")";
+    const skip=document.createElement("button"); skip.type="button"; skip.className="skip";
+    // Reversible skip: clicking toggles the row between active and "leer gelassen".
+    // Skipping remembers any text so it can be restored on undo.
+    let stash="";
+    const setSkipped=on=>{
+      if(on){ stash=inp.value; inp.value=""; inp.placeholder="leer gelassen"; }
+      else { inp.value=stash; stash=""; inp.placeholder="Stichwort …"; }
+      row.classList.toggle("done",on);
+      inp.disabled=on;
+      skip.textContent=on?"↩":"✕";
+      skip.title=on?"wieder eintragen "+range:"leer lassen "+range;
+      skip.setAttribute("aria-label",(on?"Diesen Eintrag wieder aktivieren ":"Diesen Eintrag leer lassen ")+range);
+      skip.setAttribute("aria-pressed",on?"true":"false");
+    };
+    setSkipped(false);
+    skip.onclick=()=>{ const willSkip=!row.classList.contains("done"); setSkipped(willSkip); if(!willSkip) inp.focus(); };
     row.append(tg,inp,skip);
     body.appendChild(row);
     return {slot,inp,row};
@@ -497,7 +506,7 @@ function openRangeEntry(s,e){
   $("pingTitle").textContent="Was läuft in diesem Block?";
   $("pingSub").textContent=hhmm(s)+" – "+hhmm(e)+" · "+fmtDur(mins)+" · "+DOW[s.getDay()]+" "+s.getDate()+". "+MON[s.getMonth()];
   const body=$("pingBody"); body.innerHTML="";
-  const inp=document.createElement("input"); inp.className="txt"; inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
+  const inp=document.createElement("input"); inp.className="txt"; inp.setAttribute("autocomplete","off");
   inp.placeholder="z. B. Meeting, Fokuszeit, Mittag …";
   if(existLabels.length){ inp.value=existLabels.length===1?existLabels[0]:""; }
   body.appendChild(inp);
@@ -564,19 +573,31 @@ function openEdit(seg){
       const bs=new Date(b.start),be=new Date(b.end);
       const row=document.createElement("div"); row.className="gaprow";
       const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(bs)+"–"+hhmm(be);
-      const ri=document.createElement("input"); ri.setAttribute("list","labelList"); ri.setAttribute("autocomplete","off"); ri.value=b.label;
-      const x=document.createElement("button"); x.type="button"; x.className="skip"; x.textContent="✕";
-      x.title="diesen Block löschen"; x.setAttribute("aria-label","Diesen Block löschen ("+hhmm(bs)+"–"+hhmm(be)+")");
-      x.onclick=()=>{ ri.value=""; row.classList.add("done"); };
-      ri.addEventListener("input",()=>row.classList.remove("done"));
+      const ri=document.createElement("input"); ri.setAttribute("autocomplete","off"); ri.value=b.label;
+      const range="("+hhmm(bs)+"–"+hhmm(be)+")";
+      const x=document.createElement("button"); x.type="button"; x.className="skip";
+      // Reversible clear: toggle the block between active and "wird gelöscht".
+      let stash="";
+      const setCleared=on=>{
+        if(on){ stash=ri.value; ri.value=""; ri.placeholder="wird gelöscht"; }
+        else { ri.value=stash; stash=""; ri.placeholder=""; }
+        row.classList.toggle("done",on);
+        ri.disabled=on;
+        x.textContent=on?"↩":"✕";
+        x.title=on?"doch behalten "+range:"diesen Block löschen "+range;
+        x.setAttribute("aria-label",(on?"Diesen Block doch behalten ":"Diesen Block löschen ")+range);
+        x.setAttribute("aria-pressed",on?"true":"false");
+      };
+      setCleared(false);
+      x.onclick=()=>{ const willClear=!row.classList.contains("done"); setCleared(willClear); if(!willClear) ri.focus(); };
       row.append(tg,ri,x); slots.appendChild(row);
-      editRows.push({start:b.start,input:ri});
+      editRows.push({start:b.start,input:ri,activate:()=>setCleared(false)});
     });
   } else { $("editAll").style.display="none"; $("editBulkHint").textContent=""; }
 
   openScrim("editScrim"); setTimeout(()=>inp.focus(),60);
 }
-$("editAll").onclick=()=>{ editRows.forEach(r=>{ r.input.value=$("editInput").value; r.input.parentElement.classList.remove("done"); }); };
+$("editAll").onclick=()=>{ const v=$("editInput").value; editRows.forEach(r=>{ r.activate(); r.input.value=v; }); };
 $("editSave").onclick=()=>{
   if(editRows.length) editRows.forEach(r=>setBlock(new Date(r.start),r.input.value));
   else setBlock(new Date(editing.blocks[0].start),$("editInput").value);
