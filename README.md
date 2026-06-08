@@ -1,20 +1,21 @@
 # TimeLog
 
-**Zeiterfassung für Kanzleien.** · **DSGVO-konform · Für Kanzleien gemacht · Funktioniert offline**
+**Zeiterfassung für Kanzleien.** · **Für Berufsgeheimnisträger (§203) · DSGVO-konform · Funktioniert offline**
 Live: https://kideon-innovation.github.io/timelogging/
 
-TimeLog ist eine installierbare **Progressive Web App** für die Zeiterfassung in Kanzleien —
-Steuer- und Rechtsberatung. Sie fragt dich in festem Takt — *„woran arbeitest du gerade,
-für welchen Mandanten?"* — du tippst ein Stichwort, und dein Tag wächst als farbige Blöcke
-in einer Kalenderansicht. Am Monatsende exportierst du alles als Excel: fertiger
-Stundenzettel, abrechenbar.
+TimeLog ist eine App für die Zeiterfassung in Kanzleien — Steuer- und Rechtsberatung. Sie
+fragt dich in festem Takt — *„woran arbeitest du gerade, für welchen Mandanten?"* — du
+tippst ein Stichwort, und dein Tag wächst als farbige Blöcke in einer Kalenderansicht. Am
+Monatsende exportierst du alles als Excel: fertiger Stundenzettel, abrechenbar.
 
-**DSGVO-konform durch Bauweise:** kein Backend, kein Login, kein Konto. Alle Daten — auch
-Mandantennamen — bleiben lokal im Browser und verlassen das Gerät nie. Das ist zugleich der
-Grund, warum die App komplett **offline** läuft.
+**Was du einträgst, verlässt nie deinen Computer.** Kein Server, kein Konto, keine Übertragung
+an Dritte — auch Mandantennamen bleiben ausschließlich auf deinem Gerät. Niemand außer dir kann
+sie sehen. Damit ist TimeLog **für Berufsgeheimnisträger gemacht**: deine Verschwiegenheitspflicht
+(§203 StGB) bleibt gewahrt, und DSGVO-konform ist es gleich mit. Genau deshalb läuft die App auch
+komplett **offline**.
 
-Das Ping-Intervall ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15).
-Der Takt ist zugleich die Blockgröße — kürzeres Intervall = feinere Auflösung, mehr Pings.
+Der Takt ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15). Kürzerer Takt =
+feinere Auflösung, häufigere Nachfragen.
 
 ![TimeLog – 3-Tage-Kalender](screenshots/desktop-dark.png)
 
@@ -30,32 +31,31 @@ TimeLog dreht das um: **es fragt dich**, in regelmäßigem Takt. Ein Stichwort �
 Sache, Tätigkeit — und du bist durch. Daraus entsteht ohne Disziplin-Aufwand ein lückenloser,
 abrechenbarer Stundenzettel.
 
-**Leere Blöcke sind gewollt.** Nicht getrackt = kein Block. TimeLog drängt dich nie,
-Lücken zu füllen; leer lassen ist immer ein Klick. Ein dezenter Heartbeat im Kalender zeigt
-dir nebenbei, wann der Rechner überhaupt an war — so siehst du auf einen Blick, welche
+**Leere Blöcke sind gewollt.** Nicht erfasst = kein Block. TimeLog drängt dich nie,
+Lücken zu füllen; leer lassen ist immer ein Klick. Eine dezente Aktivitätsspur im Kalender
+zeigt dir nebenbei, wann der Rechner überhaupt an war — so siehst du auf einen Blick, welche
 Lücken echte Pausen sind und welche noch nachzutragen sind.
 
 ## Wie es funktioniert
 
-1. **Öffnen** — als installierte App, `index.html` per Doppelklick oder über GitHub Pages.
-   Beim ersten Start fragt es nach Erlaubnis für OS-Benachrichtigungen.
-2. **Ping** — im gewählten Takt meldet sich TimeLog (Ton + Popup + optional
-   OS-Benachrichtigung). Du tippst ein Stichwort, wählst eine der letzten Tätigkeiten,
-   klickst **„Weiter wie eben"** oder lässt leer. Das Intervall stellst du oben im
-   Header um.
-3. **Catch-up** — warst du weg, fragt TimeLog beim Zurückkommen die verpassten Slots der
-   letzten ~2 Stunden ab. Einzeln füllen, „alle = X" sammeln oder leer lassen.
-4. **Reviewen & nachtragen** — der gefüllte Tag steht als Blöcke in einer 3-Tage-Ansicht
-   im Stil von Google Calendar. Blöcke anklicken zum Bearbeiten/Löschen, mit ◀ ▶ durch
-   die Tage. Im Kalender einen Zeitbereich aufziehen (Maus-Drag) bzw. **Long-Press +
-   Ziehen** am Touchscreen trägt einen Block über mehrere Slots nach und überschreibt,
-   was dort liegt.
+1. **Öffnen** — als installierte App, durch Doppelklick auf die Datei oder im Browser.
+   Beim ersten Start fragt TimeLog, ob es dich an die Eingabe erinnern darf.
+2. **Nachfrage** — im gewählten Takt meldet sich TimeLog (Ton + kurzer Hinweis, auf Wunsch
+   auch als Erinnerung des Geräts). Du tippst ein Stichwort, wählst eine der letzten
+   Tätigkeiten, klickst **„Weiter wie eben"** oder lässt leer. Den Takt stellst du oben um.
+3. **Nachtragen** — warst du weg, fragt TimeLog beim Zurückkommen die verpassten Einträge
+   der letzten ~2 Stunden ab. Einzeln füllen, „alle = X" sammeln oder leer lassen.
+4. **Prüfen & nachtragen** — der gefüllte Tag steht als Blöcke in einer 3-Tage-Ansicht im
+   Stil eines Kalenders. Blöcke anklicken zum Bearbeiten/Löschen, mit ◀ ▶ durch die Tage.
+   Mit der Maus (oder am Handy: gedrückt halten und ziehen) ziehst du im Kalender einen
+   Zeitbereich auf und trägst einen Block über mehrere Zeitfenster nach.
 5. **Exportieren** — **↓ Excel** schreibt `Datum | Wochentag | Start | Ende | Dauer |
-   Tätigkeit` als `.xlsx`, optional mit Datumsfilter.
+   Tätigkeit` als Excel-Datei, optional mit Datumsfilter.
 
 ## Als App installieren
 
-TimeLog ist eine echte PWA: installierbar, eigenes Fenster, offline lauffähig, Home-Screen-Icon.
+TimeLog lässt sich wie eine normale App installieren: eigenes Fenster, offline lauffähig,
+eigenes Symbol auf Startbildschirm bzw. im Dock.
 
 - **Chrome / Edge (Desktop & Android):** Installieren-Symbol in der Adressleiste — oder den
   **„↗ App installieren"**-Button oben rechts in der App.
@@ -65,39 +65,50 @@ TimeLog ist eine echte PWA: installierbar, eigenes Fenster, offline lauffähig, 
 Nach der Installation startet TimeLog im eigenen Fenster, ohne Browser-Leiste, und läuft
 komplett offline.
 
-| Tagesansicht (Mobile) | Ping (Bottom-Sheet) | Installations-Hilfe |
+| Tagesansicht (Mobile) | Nachfrage | Installations-Hilfe |
 |---|---|---|
 | ![](screenshots/mobile-dark.png) | ![](screenshots/mobile-ping.png) | ![](screenshots/mobile-install.png) |
 
 ## Features
 
-- **Installierbare PWA** mit App-Icons, Standalone-Fenster, App-Shortcuts
-  („Jetzt eintragen", „Export") und getöntem OS-Statusbar.
-- **Voll offline** dank Service Worker: App-Shell + Excel-Export-Bibliothek lokal gecacht.
-- **Responsive**: 3-Tage-Kalender am Desktop, 1-Tag-Ansicht mit Bottom-Sheet-Dialogen am Handy.
-- **Touch- & Maus-Bedienung**: Drag-to-select am Desktop, Tap/Long-Press am Touchscreen.
-- Wählbares Intervall (60/30/20/15/10/6 Min) mit Countdown-Ring, läuft in Echtzeit weiter.
-- Catch-up für verpasste Pings (Cap 2 h), Slots einzeln oder gesammelt füllen.
-- 3-Tage-Kalender im Google-Calendar-Stil, „Jetzt"-Linie, aktueller Slot markiert.
-- Drag im Kalender trägt einen Block über mehrere Slots nach (überschreibt Bestehendes).
-- Deterministische Farben pro Tätigkeit (gleiches Stichwort = gleiche Farbe).
-- Hell-/Dunkel-Theme, Quick-Picks der zuletzt genutzten Tätigkeiten.
-- `.xlsx`-Export (SheetJS, lokal gebündelt) mit Datumsfilter.
+- **Wie eine echte App installierbar** — eigenes Symbol, eigenes Fenster, Schnellzugriffe
+  („Jetzt eintragen", „Export").
+- **Voll offline** — einmal geladen, läuft alles ohne Internet, auch der Excel-Export.
+- **Passt sich an**: 3-Tage-Kalender am Computer, 1-Tag-Ansicht mit großen Dialogen am Handy.
+- **Touch & Maus**: am Computer Zeitbereich mit der Maus aufziehen, am Handy gedrückt halten
+  und ziehen.
+- Wählbarer Takt (60/30/20/15/10/6 Min) mit mitlaufendem Countdown.
+- Nachtragen verpasster Nachfragen (bis 2 h zurück), einzeln oder gesammelt füllen.
+- 3-Tage-Kalender im vertrauten Kalender-Stil, „Jetzt"-Linie, aktuelles Zeitfenster markiert.
+- Im Kalender einen Block über mehrere Zeitfenster ziehen (überschreibt Bestehendes).
+- Feste Farbe pro Tätigkeit (gleiches Stichwort = gleiche Farbe).
+- Hell-/Dunkel-Ansicht, Schnellauswahl der zuletzt genutzten Tätigkeiten.
+- Excel-Export mit Datumsfilter.
 
 ![TimeLog – Light Theme](screenshots/desktop-light.png)
 
-## Daten & Privatsphäre (DSGVO)
+## Berufsgeheimnis (§203) & Datenschutz
 
-Alles bleibt lokal. Daten liegen im `localStorage` deines Browsers (Key `timelog.v1`),
-überleben Reloads und verlassen nie deinen Rechner. Kein Server, kein Tracking, kein
-Account. Für eine Kanzlei heißt das: Mandantendaten werden nirgendwo hochgeladen oder an
-Dritte übermittelt — es gibt keine Auftragsverarbeitung, weil es keinen Verarbeiter gibt.
-Das ist die einfachste Form von DSGVO-Konformität. Anderer Browser oder gelöschter Speicher
-= die Daten sind weg, also bei Bedarf regelmäßig als Excel exportieren.
+**Was du einträgst, verlässt nie deinen Computer.** Alle Eingaben — auch Mandantennamen —
+werden ausschließlich auf deinem Gerät gespeichert. Es gibt keinen Server, kein Konto und
+keine Übertragung an Dritte. Niemand außer dir kann die Daten sehen.
 
-Der dezente **Heartbeat** (wann der Rechner an war) liegt unter einem eigenen Key
-(`timelog.heartbeat.v1`), bleibt ebenfalls rein lokal, wird auf die letzten 7 Tage begrenzt
-und landet nie im Excel-Export.
+Für Berufsgeheimnisträger ist das der entscheidende Punkt: Weil die vertraulichen Inhalte
+das Gerät nie verlassen, wird auch kein Dienstleister zur „mitwirkenden Person" — genau das
+Problem, das Cloud-Software für Kanzleien sonst hat, entsteht hier gar nicht erst. Deine
+Verschwiegenheitspflicht nach **§203 StGB** bleibt gewahrt. Und weil keine personenbezogenen
+Daten an Dritte gehen, ist es zugleich die einfachste Form von **DSGVO-Konformität** — es
+gibt keine Auftragsverarbeitung, weil es keinen Verarbeiter gibt.
+
+Praktische Folge: Wechselst du den Browser oder löschst den Speicher, sind die Daten weg —
+exportiere also bei Bedarf regelmäßig als Excel. Die dezente **Aktivitätsspur** (wann der
+Rechner an war) bleibt ebenfalls rein lokal, umfasst nur die letzten 7 Tage und landet nie
+im Excel-Export.
+
+> Hinweis: Die App lädt beim Start ihre Schriftarten von Google Fonts. Dabei werden keine
+> Eingaben übertragen — nur deine IP-Adresse wird an Google übermittelt, wie bei jedem
+> Aufruf einer Website mit eingebundenen Web-Schriften. Das berührt das Berufsgeheimnis
+> (§203) nicht; deine Mandantendaten bleiben in jedem Fall ausschließlich auf dem Gerät.
 
 ## Tech
 
