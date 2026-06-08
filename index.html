@@ -388,6 +388,8 @@
   }
   .intro.show{display:block}
   .intro-wrap{max-width:760px;margin:0 auto;padding:64px 28px 72px;text-align:center}
+  /* on wide screens the pitch may use a content column up to ~1180px */
+  @media (min-width:900px){ .intro-wrap{max-width:1180px;padding:72px 48px 84px} }
   .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px}
   .intro h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1;letter-spacing:.3px;margin-bottom:18px}
   .intro h1 em{font-style:italic;color:var(--accent)}
@@ -425,8 +427,12 @@
   .intro-xls .xr .xc:last-child{border-right:0}
   .intro-xls .xb .xc{color:var(--text-dim)}
 
-  .intro-badge{display:inline-flex;align-items:center;gap:8px;margin:34px auto 0;padding:9px 18px;
-    background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;font-size:12px;font-weight:500;color:var(--accent);line-height:1.45}
+  /* local-only / offline reassurance — compact pill */
+  .intro-badge{display:inline-flex;align-items:center;gap:7px;margin:28px auto 0;padding:6px 13px 6px 11px;
+    background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;
+    font-size:12px;font-weight:500;color:var(--accent);line-height:1.3;white-space:nowrap}
+  .intro-badge svg{width:13px;height:13px;flex:0 0 13px}
+  @media (max-width:420px){ .intro-badge{white-space:normal;text-align:left} }
   .intro-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:32px}
   .intro-cta .btn{height:44px;padding:0 22px;font-size:14px;border-radius:11px}
   .intro-foot{margin-top:38px;font-size:11px;color:var(--text-faint)}
@@ -447,6 +453,52 @@
   .footer-oss a:hover{border-bottom-color:var(--accent)}
 
   @media (max-width:760px){ .intro-wrap{padding:48px 20px 64px} }
+
+  /* ============================================================
+     INTRO — desktop / large-screen layout.
+     Base styles above are the (good) mobile design; everything here
+     is additive and only kicks in on roomy viewports so the pitch
+     fills the width and feels premium instead of phone-locked.
+     ============================================================ */
+  @media (min-width:900px){
+    .intro h1{font-size:clamp(2.8rem,4.6vw,4rem);margin-bottom:22px}
+    .intro .lead{font-size:17px;line-height:1.75;max-width:640px}
+    .trust{max-width:760px;gap:12px 22px;margin-top:30px}
+    .trust .tc{font-size:11.5px}
+
+    /* 3-step pitch → three equal columns */
+    .intro-points{max-width:1080px;display:grid;grid-template-columns:repeat(3,1fr);
+      gap:20px;margin-top:52px;align-items:stretch}
+    .intro-point{padding:24px 24px 26px;display:flex;flex-direction:column}
+    .intro-point h3{font-size:15.5px;margin-bottom:9px}
+    .intro-point p{font-size:14px}
+
+    /* ping → excel demo: place bubble, arrow and table side-by-side */
+    .intro-demo{max-width:980px;flex-direction:row;align-items:center;
+      justify-content:center;gap:24px;margin-top:52px}
+    .intro-bubble{flex:0 0 340px;width:auto}
+    .intro-arrow{margin:0;transform:rotate(-90deg);font-size:24px}
+    .intro-xls{flex:1 1 auto;min-width:0}
+    .intro-xls .xr{min-width:0}
+
+    .intro-badge{margin-top:40px}
+    .intro-cta{margin-top:40px}
+    .intro-cta .btn{height:48px;padding:0 28px;font-size:15px}
+
+    /* footer: wider, OSS notes side-by-side */
+    .intro-footer{max-width:1000px;margin-top:72px;padding-top:42px}
+    .footer-oss-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;
+      max-width:920px;margin:26px auto 0;align-items:start}
+    .footer-oss-grid .footer-oss{margin:0;max-width:none;text-align:left}
+  }
+  @media (min-width:1280px){
+    .intro-wrap{padding-top:88px}
+    .intro h1{font-size:clamp(3.2rem,3.6vw,4.4rem)}
+    .intro .lead{font-size:18px;max-width:680px}
+    .intro-points{gap:26px}
+    .intro-point{padding:28px 28px 30px}
+    .intro-demo{gap:32px}
+  }
 </style>
 </head>
 <body>
@@ -499,7 +551,7 @@
       </div>
     </div>
 
-    <div class="intro-badge">🔒 Was du einträgst, verlässt nie diesen Computer. Kein Server, kein Konto — niemand außer dir kann die Mandantendaten sehen. Gemacht für Berufsgeheimnisträger: deine Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt, und DSGVO-konform ist es gleich mit.</div>
+    <div class="intro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Verlässt nie diesen Computer — kein Server, kein Konto.</div>
 
     <div class="intro-cta">
       <button class="btn amber" id="introStart">Loslegen →</button>
@@ -508,7 +560,7 @@
 
     <footer class="intro-footer">
       <div class="footer-social">
-        <a href="https://github.com/Kideon-Innovation/timelogging" target="_blank" rel="noopener noreferrer"
+        <a href="https://github.com/Kideon-Innovation/timelog" target="_blank" rel="noopener noreferrer"
            aria-label="Quellcode auf GitHub ansehen" title="Was steckt dahinter? Quellcode auf GitHub">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"/></svg>
         </a>
@@ -518,9 +570,10 @@
         </a>
       </div>
 
+      <div class="footer-oss-grid">
       <p class="footer-oss">
         <b>Open Source.</b> TimeLog steht unter der
-        <a href="https://github.com/Kideon-Innovation/timelogging/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT-Lizenz</a> —
+        <a href="https://github.com/Kideon-Innovation/timelog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT-Lizenz</a> —
         kostenlos nutzbar, anpassbar und weitergebbar. Den ganzen Quellcode kannst du auf GitHub einsehen.
         Wie bei freier Software üblich gilt: ohne Gewähr, ohne Garantie und ohne Haftung — du nutzt sie auf eigene Verantwortung.
       </p>
@@ -531,6 +584,7 @@
         Fragen zum Tool, oder soll etwas auf deine Kanzlei zugeschnitten werden?
         <a href="https://termin.kideon.de/joerg/15min" target="_blank" rel="noopener noreferrer">Melde dich einfach bei Kideon</a>.
       </p>
+      </div>
     </footer>
 
     <p class="intro-foot">Läuft offline · von <a href="https://kideon.de/" target="_blank" rel="noopener">Kideon</a></p>
