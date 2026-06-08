@@ -523,7 +523,7 @@
           <div class="menu-sep"></div>
           <button class="menu-item" id="themeBtn">🌙 Theme</button>
           <button class="menu-item" id="notifyBtn">🔔 Erinnerungen anschalten</button>
-          <button class="menu-item" id="soundBtn">🔈 Ton ausschalten</button>
+          <button class="menu-item" id="soundBtn">🔇 Ton ausschalten</button>
           <button class="menu-item" id="installBtn">↗ App installieren</button>
           <div class="menu-sep"></div>
           <button class="menu-item" id="exportBtn">↓ Excel-Export</button>
@@ -1475,7 +1475,7 @@ function initInterval(){
 }
 
 $("soundBtn").onclick=()=>{ state.settings.soundOn=!state.settings.soundOn; save();
-  $("soundBtn").textContent=state.settings.soundOn?"🔈 Ton ausschalten":"🔊 Ton anschalten";
+  $("soundBtn").textContent=state.settings.soundOn?"🔇 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
   if(state.settings.soundOn) beep(); refreshNotifyNudge(); toast("Ton "+(state.settings.soundOn?"eingeschaltet":"ausgeschaltet")); };
 
@@ -1525,7 +1525,7 @@ $("nudgeEnable").onclick=async()=>{
     state.settings.notifyOn=(p==="granted");
   }
   if(!state.settings.soundOn){ state.settings.soundOn=true;
-    $("soundBtn").textContent="🔈 Ton ausschalten"; $("soundBtn").classList.remove("ghost"); beep(); }
+    $("soundBtn").textContent="🔇 Ton ausschalten"; $("soundBtn").classList.remove("ghost"); beep(); }
   save(); refreshNotifyBtn();
   if(notifyGranted()) toast("Erinnerungen eingeschaltet — du wirst jetzt erinnert");
   else { openMenu(); toast("Den Ping-Takt stellst du hier unter Blockgröße ein"); }
@@ -1553,7 +1553,7 @@ function boot(){
   applyTheme();
   if(!state.settings.introSeen) showIntro();
   initInterval();
-  $("soundBtn").textContent=state.settings.soundOn?"🔈 Ton ausschalten":"🔊 Ton anschalten";
+  $("soundBtn").textContent=state.settings.soundOn?"🔇 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
   refreshNotifyBtn();
   recordBeat();                       // mark this slot alive on load
