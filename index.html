@@ -256,9 +256,29 @@
   .beat{position:absolute;left:0;width:3px;border-radius:2px;background:var(--accent);
     opacity:.4;z-index:1;cursor:help}
   html[data-theme="dark"] .beat{opacity:.5}
-  /* invisible hover target so the 3px rail is comfortably hoverable for its title tooltip */
+  /* invisible hover/focus target so the 3px rail is comfortably hoverable for its tooltip */
   .beat::after{content:"";position:absolute;top:0;bottom:0;left:-2px;width:14px}
   .beat:hover{opacity:.85}
+  .beat:focus-visible{outline:2px solid var(--accent);outline-offset:1px;opacity:.85}
+
+  /* custom instant tooltip (replaces native title's ~1s delay).
+     Shown the instant the pointer/focus is on the rail — no JS, no show-delay. */
+  .beat-tip{
+    position:absolute;left:16px;top:0;z-index:60;
+    width:248px;max-width:248px;padding:9px 11px;
+    background:var(--bg-raised);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);
+    font-size:11.5px;line-height:1.4;text-align:left;white-space:normal;
+    pointer-events:none;opacity:0;transform:translateY(2px);
+    transition:opacity .08s ease,transform .08s ease;transition-delay:0s;
+  }
+  .beat-tip .beat-tip-h{display:block;font-weight:700;color:var(--accent);
+    font-family:'JetBrains Mono';font-size:10.5px;margin-bottom:3px}
+  /* flip to the left edge for the rightmost column so the card never overflows the viewport */
+  .daycol:last-child .beat-tip{left:auto;right:16px}
+  .beat:hover .beat-tip,
+  .beat:focus-visible .beat-tip,
+  .beat:focus-within .beat-tip{opacity:1;transform:translateY(0)}
 
   .block{
     position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
@@ -681,7 +701,6 @@
         <b>Open Source.</b> TimeLog steht unter der
         <a href="https://github.com/Kideon-Innovation/timelog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT-Lizenz</a> —
         kostenlos nutzbar, anpassbar und weitergebbar. Den ganzen Quellcode kannst du auf GitHub einsehen.
-        Ohne Gewähr, ohne Garantie und ohne Haftung — du nutzt sie auf eigene Verantwortung.
       </p>
 
       <p class="footer-oss">
@@ -1091,14 +1110,23 @@ function renderCalendar(){
 
     // heartbeat rail: faint marks where the machine was alive that day
     beatRuns(day).forEach(run=>{
+      const range=minLabel(run.startMin)+"–"+minLabel(run.endMin);
       const b=document.createElement("div"); b.className="beat";
       b.style.top=(run.startMin*PX_PER_MIN)+"px";
       b.style.height=Math.max(2,(run.endMin-run.startMin)*PX_PER_MIN-1)+"px";
       b.setAttribute("role","img");
-      b.setAttribute("aria-label","Aktivitätsspur "+minLabel(run.startMin)+"–"+minLabel(run.endMin)
+      b.tabIndex=0; // keyboard-focusable so the custom tooltip shows on focus
+      b.setAttribute("aria-label","Aktivitätsspur "+range
         +": in dieser Zeit war TimeLog geöffnet. So siehst du, welche Lücken echte Pausen sind und was du noch nachtragen kannst.");
-      b.title="Aktivitätsspur · "+minLabel(run.startMin)+"–"+minLabel(run.endMin)
-        +"\nIn dieser Zeit war TimeLog geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät.";
+      // custom instant tooltip — NO native title (which has a ~1s browser delay)
+      const tip=document.createElement("div"); tip.className="beat-tip";
+      tip.setAttribute("aria-hidden","true");
+      const th=document.createElement("span"); th.className="beat-tip-h";
+      th.textContent="Aktivitätsspur · "+range;
+      tip.appendChild(th);
+      tip.appendChild(document.createTextNode(
+        "In dieser Zeit war TimeLog geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät."));
+      b.appendChild(tip);
       col.appendChild(b);
     });
 
