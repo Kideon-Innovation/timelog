@@ -435,10 +435,24 @@
   .intro-point .pn{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
     display:grid;place-items:center;font-family:'JetBrains Mono';font-size:12px;font-weight:700}
 
+  /* ---------- contrast block: counters auto-tracking & stopwatch ---------- */
+  .intro-counter{max-width:560px;margin:48px auto 0;text-align:left}
+  .intro-counter-kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);
+    font-weight:600;text-align:center;margin-bottom:18px}
+  .intro-flaws{display:flex;flex-direction:column;gap:12px}
+  .intro-flaw{background:transparent;border:1px solid var(--line-soft);border-radius:14px;padding:16px 18px;opacity:.82}
+  .intro-flaw h3{font-size:14px;font-weight:600;color:var(--text-dim);margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  .intro-flaw p{font-size:13px;line-height:1.6;color:var(--text-dim)}
+  .intro-flaw .fx{width:22px;height:22px;flex:0 0 22px;border-radius:50%;border:1px solid var(--line-soft);color:var(--text-dim);
+    display:grid;place-items:center;font-size:12px;line-height:1}
+  .intro-resolve{font-size:13.5px;line-height:1.62;color:var(--text);margin:16px auto 0;max-width:540px;text-align:center}
+  .intro-resolve strong{color:var(--accent);font-weight:600}
+
 
   /* ============================================================
-     ANIMATED PRODUCT DEMO — a mini, stylised app calendar that
-     gets a ping, then a fake cursor "logs" an entry as a block.
+     ANIMATED PRODUCT DEMO — a mini, stylised app calendar where a
+     fake cursor clicks an empty slot, the app asks what you worked
+     on, and the entry fills the slot as a block.
      Reuses the look of the real calendar (.col-head/.hr-line/.block
      vibe) at small scale. Pure CSS keyframes; JS only toggles
      .playing on scroll-in-view. Reduced-motion → static final frame.
@@ -492,30 +506,34 @@
   .intro-demo.playing .demo-cursor{animation:dCursor 5.5s ease-in-out infinite}
   .intro-demo.playing .demo-new{animation:dNew 5.5s ease-in-out infinite}
 
-  @keyframes dPing{               /* pop in, then dismiss after the click */
-    0%{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}
-    8%,52%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  /* Prompt appears AFTER the empty slot is clicked, dismisses after confirm. */
+  @keyframes dPing{
+    0%,23%{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}
+    30%,52%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
     60%,100%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.97)}
   }
   /* Cursor uses PIXEL offsets so it lines up exactly with the pixel-
      positioned blocks (percentages drifted off as the cal height varies).
-     The new block lives at top:250px h:44px → its centre ≈ 272px; the
-     ping suggestion chip sits ≈ 96px. Tip of the arrow ≈ element origin. */
+     Flow: click the EMPTY 13:00 slot (≈150px/268px) → prompt opens → move up
+     and confirm the suggested entry chip (≈118px/96px) → back to the filled
+     slot. Tip of the arrow ≈ element origin. */
   @keyframes dCursor{
-    0%,12%{opacity:0;left:74%;top:240px}
-    20%{opacity:1;left:74%;top:240px}
-    40%{opacity:1;left:118px;top:96px}     /* arrive over the ping chip */
-    46%{opacity:1;left:118px;top:96px;transform:scale(.82)}   /* click */
-    50%{opacity:1;left:118px;top:96px;transform:scale(1)}
-    66%{opacity:1;left:150px;top:268px}    /* move down to the 13:00 slot */
-    80%{opacity:1;left:150px;top:268px}    /* rest on the new block */
-    90%,100%{opacity:0;left:150px;top:268px}
+    0%,10%{opacity:0;left:150px;top:288px}
+    16%{opacity:1;left:150px;top:268px}                       /* arrive over the empty 13:00 slot */
+    22%{opacity:1;left:150px;top:268px;transform:scale(.82)}  /* click the slot → opens the prompt */
+    27%{opacity:1;left:150px;top:268px;transform:scale(1)}
+    42%{opacity:1;left:118px;top:96px}                        /* move up to the suggested entry */
+    48%{opacity:1;left:118px;top:96px;transform:scale(.82)}   /* confirm */
+    52%{opacity:1;left:118px;top:96px;transform:scale(1)}
+    64%{opacity:1;left:150px;top:268px}                       /* back down to the now-filled slot */
+    82%{opacity:1;left:150px;top:268px}
+    92%,100%{opacity:0;left:150px;top:268px}
   }
-  @keyframes dNew{                /* block grows in at the 13:00 slot, in sync with the cursor arriving */
-    0%,58%{opacity:0;transform:scaleY(.4);transform-origin:top}
-    66%{opacity:1;transform:scaleY(1);transform-origin:top}
-    68%{box-shadow:inset 0 0 0 1px var(--bc),0 2px 8px #00000055}
-    84%,100%{opacity:1;transform:scaleY(1);box-shadow:inset 0 0 0 1px #ffffff10,0 1px 3px #00000040}
+  @keyframes dNew{                /* block fills the slot once the entry is confirmed */
+    0%,54%{opacity:0;transform:scaleY(.4);transform-origin:top}
+    62%{opacity:1;transform:scaleY(1);transform-origin:top}
+    64%{box-shadow:inset 0 0 0 1px var(--bc),0 2px 8px #00000055}
+    82%,100%{opacity:1;transform:scaleY(1);box-shadow:inset 0 0 0 1px #ffffff10,0 1px 3px #00000040}
   }
 
   /* Reduced motion (and the non-playing default): static final frame —
@@ -635,6 +653,21 @@
       </div>
     </div>
 
+    <div class="intro-counter">
+      <p class="intro-counter-kick">Warum nicht einfach mitschneiden?</p>
+      <div class="intro-flaws">
+        <div class="intro-flaw">
+          <h3><span class="fx" aria-hidden="true">✕</span> Auto-Tracking</h3>
+          <p>Tools, die jedes Fenster mitschneiden, sind teuer — und geben dir am Ende 1000 Schnipsel. Wer arbeitet schon 15 Minuten am Stück in einem Fenster? Abends sitzt du trotzdem da und sortierst von Hand, woran du eigentlich warst.</p>
+        </div>
+        <div class="intro-flaw">
+          <h3><span class="fx" aria-hidden="true">✕</span> Stoppuhr</h3>
+          <p>Start drücken klappt — bis du's vergisst. Dann ist Nachtragen jedes Mal ein Ratespiel: wann war das, wie lange?</p>
+        </div>
+      </div>
+      <p class="intro-resolve">TimeLog macht beides nicht. Es fragt von selbst, woran du arbeitest — ein Klick bestätigt, dass du am selben Thema dranbleibst, oder du tippst kurz was Neues. <strong>Kein Mitschneiden, kein Drandenken.</strong></p>
+    </div>
+
     <p class="intro-demo-kick">So einfach geht das</p>
     <div class="intro-demo" id="introDemo">
       <!-- mini app calendar (stylised after the real day view) -->
@@ -664,10 +697,10 @@
           </div>
         </div>
 
-        <!-- ping notification -->
+        <!-- prompt shown after the empty slot is clicked -->
         <div class="demo-ping">
-          <div class="pk">15-Minuten-Ping</div>
-          <div class="pq">Woran arbeitest du gerade?</div>
+          <div class="pk">Eintrag · 13:00 – 13:45</div>
+          <div class="pq">Woran hast du gearbeitet?</div>
           <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
         </div>
 
@@ -847,11 +880,20 @@
         <div><label class="fl">Bis</label><input type="date" class="txt" id="expTo"></div>
       </div>
       <p class="muted" id="expCount" style="margin-top:14px">—</p>
+      <details id="datevDetails" style="margin-top:14px">
+        <summary style="cursor:pointer">DATEV-Lohn-Export (für dein Lohnbüro)</summary>
+        <p class="muted" style="margin-top:10px">Stunden pro Tag als DATEV-Lohn-CSV (Lohn und Gehalt). Personalnummer und Lohnart erfragst du bei deinem Lohnbüro.</p>
+        <div class="row" style="margin-top:10px">
+          <div><label class="fl">Personalnummer</label><input type="text" inputmode="numeric" class="txt" id="datevPnr" placeholder="z.B. 1001"></div>
+          <div><label class="fl">Lohnart</label><input type="text" inputmode="numeric" class="txt" id="datevLa" placeholder="z.B. 100"></div>
+        </div>
+      </details>
     </div>
     <div class="modal-f">
       <button class="btn ghost" id="expAll">Alles</button>
       <div class="spacer"></div>
       <button class="btn ghost" id="expCancel">Abbrechen</button>
+      <button class="btn ghost" id="expDatev">↓ DATEV-Lohn</button>
       <button class="btn amber" id="expGo">↓ .xlsx</button>
     </div>
   </div>
@@ -1476,6 +1518,46 @@ function doExport(){
 }
 
 /* ============================================================
+   DATEV-LOHN-EXPORT (Datei) — Bewegungsdaten als Semikolon-CSV
+   für DATEV Lohn und Gehalt. Stunden pro Kalendertag verdichtet.
+   Spalten: Personalnummer;Datum;Lohnart;Stunden (CRLF, ASCII-rein).
+   Personalnummer + Lohnart sind Pflicht und liegen separat im
+   localStorage (DATEV_KEY), getrennt vom Zeit-Datenmodell.
+   ============================================================ */
+const DATEV_KEY="timelog.datev.v1";
+function loadDatevCfg(){ try{ return JSON.parse(localStorage.getItem(DATEV_KEY))||{}; }catch(e){ return {}; } }
+function saveDatevCfg(cfg){ try{ localStorage.setItem(DATEV_KEY, JSON.stringify(cfg)); }catch(e){} }
+function fmtDateDE(d){ const z=n=>String(n).padStart(2,"0"); return z(d.getDate())+"."+z(d.getMonth()+1)+"."+d.getFullYear(); }
+function fmtHours(min){ return (min/60).toFixed(2).replace(".",","); }
+// exportRows() ist bereits nach start sortiert → Tagesreihenfolge bleibt erhalten.
+function datevLohnRows(){
+  const byDay=new Map();
+  exportRows().forEach(b=>{ const key=b.start.slice(0,10);
+    byDay.set(key,(byDay.get(key)||0)+blockDurMin(b)); });
+  return [...byDay.entries()].map(([key,min])=>
+    ({datum:fmtDateDE(new Date(key+"T00:00:00")), min}));
+}
+function doExportDatev(){
+  const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
+  saveDatevCfg({pnr,la});
+  if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
+  const days=datevLohnRows();
+  if(!days.length){ toast("Nichts zu exportieren"); return; }
+  const lines=["Personalnummer;Datum;Lohnart;Stunden"];
+  days.forEach(d=>lines.push(pnr+";"+d.datum+";"+la+";"+fmtHours(d.min)));
+  const csv=lines.join("\r\n")+"\r\n";
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  const rows=exportRows();
+  const tag=rows[0].start.slice(0,10)+"_bis_"+rows[rows.length-1].start.slice(0,10);
+  a.href=url; a.download="datev_lohn_"+tag+".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),0);
+  markExported();
+  close("exportScrim"); toast("DATEV-Lohn exportiert: "+days.length+" Tage");
+}
+
+/* ============================================================
    IMPORT (xlsx via SheetJS) — round-trips the export format.
    Reads Datum / Start / Ende / Tätigkeit; Wochentag + Dauer ignored.
    Conflict policy: slot-overwrite (imported block wins on equal start).
@@ -1677,6 +1759,8 @@ $("exportBtn").onclick=()=>{ updateExpCount(); $("exportScrim").classList.add("s
 $("expCancel").onclick=()=>close("exportScrim");
 $("expAll").onclick=()=>{ $("expFrom").value=""; $("expTo").value=""; updateExpCount(); };
 $("expGo").onclick=doExport;
+$("expDatev").onclick=doExportDatev;
+(function initDatevInputs(){ const c=loadDatevCfg(); if(c.pnr) $("datevPnr").value=c.pnr; if(c.la) $("datevLa").value=c.la; })();
 $("expFrom").onchange=updateExpCount; $("expTo").onchange=updateExpCount;
 
 /* overflow menu */
