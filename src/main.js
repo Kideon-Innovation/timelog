@@ -728,9 +728,18 @@ function doExportDatev(){
    Reads Datum / Start / Ende / Tätigkeit; Wochentag + Dauer ignored.
    Conflict policy: slot-overwrite (imported block wins on equal start).
    ============================================================ */
-function parseDE(v){ const m=String(v||"").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+// Accept BOTH the app's own text export ("02.06.2026" / "09:00") AND files
+// that were opened/edited and re-saved in real Excel — where the Datum/Start/
+// Ende columns come back as native date/time cells. With {raw:true,cellDates:
+// true} SheetJS hands those over as JS Date objects, so parse those directly
+// from their local components; fall back to the German text regex otherwise.
+function parseDE(v){
+  if(v instanceof Date && !isNaN(v)) return {d:v.getDate(),m:v.getMonth()+1,y:v.getFullYear()};
+  const m=String(v||"").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   return m ? {d:+m[1],m:+m[2],y:+m[3]} : null; }
-function parseHM(v){ const m=String(v||"").trim().match(/^(\d{1,2}):(\d{2})$/);
+function parseHM(v){
+  if(v instanceof Date && !isNaN(v)) return {h:v.getHours(),min:v.getMinutes()};
+  const m=String(v||"").trim().match(/^(\d{1,2}):(\d{2})$/);
   return m ? {h:+m[1],min:+m[2]} : null; }
 
 function importXlsx(file){
@@ -740,9 +749,11 @@ function importXlsx(file){
   reader.onload=ev=>{
     let rows;
     try{
-      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const wb=XLSX.read(ev.target.result,{type:"array",cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false});
+      // raw:true keeps native date/time cells as Date objects (parseDE/parseHM
+      // handle those); text cells (our own export) stay as strings.
+      rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
     }catch(err){ toast("Keine gültige Excel-Datei"); return; }
     applyImport(rows);
   };
