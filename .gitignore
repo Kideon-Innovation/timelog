@@ -4,6 +4,7 @@ dist/
 dev-dist/
 
 # test / dev artifacts
+.test-port
 .playwright-mcp/
 tl-*.png
 .DS_Store

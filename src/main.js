@@ -684,6 +684,46 @@ function doExport(){
 }
 
 /* ============================================================
+   DATEV-LOHN-EXPORT (Datei) — Bewegungsdaten als Semikolon-CSV
+   für DATEV Lohn und Gehalt. Stunden pro Kalendertag verdichtet.
+   Spalten: Personalnummer;Datum;Lohnart;Stunden (CRLF, ASCII-rein).
+   Personalnummer + Lohnart sind Pflicht und liegen separat im
+   localStorage (DATEV_KEY), getrennt vom Zeit-Datenmodell.
+   ============================================================ */
+const DATEV_KEY="timelog.datev.v1";
+function loadDatevCfg(){ try{ return JSON.parse(localStorage.getItem(DATEV_KEY))||{}; }catch(e){ return {}; } }
+function saveDatevCfg(cfg){ try{ localStorage.setItem(DATEV_KEY, JSON.stringify(cfg)); }catch(e){} }
+function fmtDateDE(d){ const z=n=>String(n).padStart(2,"0"); return z(d.getDate())+"."+z(d.getMonth()+1)+"."+d.getFullYear(); }
+function fmtHours(min){ return (min/60).toFixed(2).replace(".",","); }
+// exportRows() ist bereits nach start sortiert → Tagesreihenfolge bleibt erhalten.
+function datevLohnRows(){
+  const byDay=new Map();
+  exportRows().forEach(b=>{ const key=b.start.slice(0,10);
+    byDay.set(key,(byDay.get(key)||0)+blockDurMin(b)); });
+  return [...byDay.entries()].map(([key,min])=>
+    ({datum:fmtDateDE(new Date(key+"T00:00:00")), min}));
+}
+function doExportDatev(){
+  const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
+  saveDatevCfg({pnr,la});
+  if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
+  const days=datevLohnRows();
+  if(!days.length){ toast("Nichts zu exportieren"); return; }
+  const lines=["Personalnummer;Datum;Lohnart;Stunden"];
+  days.forEach(d=>lines.push(pnr+";"+d.datum+";"+la+";"+fmtHours(d.min)));
+  const csv=lines.join("\r\n")+"\r\n";
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  const rows=exportRows();
+  const tag=rows[0].start.slice(0,10)+"_bis_"+rows[rows.length-1].start.slice(0,10);
+  a.href=url; a.download="datev_lohn_"+tag+".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),0);
+  markExported();
+  close("exportScrim"); toast("DATEV-Lohn exportiert: "+days.length+" Tage");
+}
+
+/* ============================================================
    IMPORT (xlsx via SheetJS) — round-trips the export format.
    Reads Datum / Start / Ende / Tätigkeit; Wochentag + Dauer ignored.
    Conflict policy: slot-overwrite (imported block wins on equal start).
@@ -885,6 +925,8 @@ $("exportBtn").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 $("expCancel").onclick=()=>close("exportScrim");
 $("expAll").onclick=()=>{ $("expFrom").value=""; $("expTo").value=""; updateExpCount(); };
 $("expGo").onclick=doExport;
+$("expDatev").onclick=doExportDatev;
+(function initDatevInputs(){ const c=loadDatevCfg(); if(c.pnr) $("datevPnr").value=c.pnr; if(c.la) $("datevLa").value=c.la; })();
 $("expFrom").onchange=updateExpCount; $("expTo").onchange=updateExpCount;
 
 /* overflow menu */

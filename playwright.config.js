@@ -16,6 +16,8 @@ export default defineConfig({
   use: {
     baseURL: BASE,
     trace: 'off',
+    // DATEV-Lohn export triggers a file download; tests need to capture it.
+    acceptDownloads: true,
   },
   webServer: {
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,

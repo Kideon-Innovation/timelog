@@ -17,7 +17,7 @@ komplett **offline**.
 Der Takt ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15). Kürzerer Takt =
 feinere Auflösung, häufigere Nachfragen.
 
-![TimeLog – 3-Tage-Kalender](screenshots/desktop-dark.png)
+![TimeLog – 3-Tage-Kalender](public/screenshots/desktop-dark.png)
 
 ## Idee
 
@@ -51,6 +51,11 @@ Lücken echte Pausen sind und welche noch nachzutragen sind.
    Zeitbereich auf und trägst einen Block über mehrere Zeitfenster nach.
 5. **Exportieren** — **↓ Excel** schreibt `Datum | Wochentag | Start | Ende | Dauer |
    Tätigkeit` als Excel-Datei, optional mit Datumsfilter.
+   - **↓ DATEV-Lohn** (im Export-Dialog ausklappbar) schreibt die Stunden pro Tag als
+     Semikolon-CSV für **DATEV Lohn und Gehalt** (`Personalnummer;Datum;Lohnart;Stunden`).
+     Personalnummer und Lohnart erfragst du bei deinem Lohnbüro; das Lohnbüro legt das
+     ASCII-Importformat einmalig fest. (DATEV-Leistungs-/Mandantenabrechnung hat keinen
+     offenen Datei-Import — nur über die zertifizierte DATEV-Partner-API.)
 
 ## Als App installieren
 
@@ -67,7 +72,7 @@ komplett offline.
 
 | Tagesansicht (Mobile) | Nachfrage | Installations-Hilfe |
 |---|---|---|
-| ![](screenshots/mobile-dark.png) | ![](screenshots/mobile-ping.png) | ![](screenshots/mobile-install.png) |
+| ![](public/screenshots/mobile-dark.png) | ![](public/screenshots/mobile-ping.png) | ![](public/screenshots/mobile-install.png) |
 
 ## Features
 
@@ -85,7 +90,7 @@ komplett offline.
 - Hell-/Dunkel-Ansicht, Schnellauswahl der zuletzt genutzten Tätigkeiten.
 - Excel-Export mit Datumsfilter.
 
-![TimeLog – Light Theme](screenshots/desktop-light.png)
+![TimeLog – Light Theme](public/screenshots/desktop-light.png)
 
 ## Berufsgeheimnis (§203) & Datenschutz
 

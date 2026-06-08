@@ -64,6 +64,21 @@
       </div>
     </div>
 
+    <div class="intro-counter">
+      <p class="intro-counter-kick">Warum nicht einfach mitschneiden?</p>
+      <div class="intro-flaws">
+        <div class="intro-flaw">
+          <h3><span class="fx" aria-hidden="true">✕</span> Auto-Tracking</h3>
+          <p>Tools, die jedes Fenster mitschneiden, sind teuer — und geben dir am Ende 1000 Schnipsel. Wer arbeitet schon 15 Minuten am Stück in einem Fenster? Abends sitzt du trotzdem da und sortierst von Hand, woran du eigentlich warst.</p>
+        </div>
+        <div class="intro-flaw">
+          <h3><span class="fx" aria-hidden="true">✕</span> Stoppuhr</h3>
+          <p>Start drücken klappt — bis du's vergisst. Dann ist Nachtragen jedes Mal ein Ratespiel: wann war das, wie lange?</p>
+        </div>
+      </div>
+      <p class="intro-resolve">TimeLog macht beides nicht. Es fragt von selbst, woran du arbeitest — ein Klick bestätigt, dass du am selben Thema dranbleibst, oder du tippst kurz was Neues. <strong>Kein Mitschneiden, kein Drandenken.</strong></p>
+    </div>
+
     <p class="intro-demo-kick">So einfach geht das</p>
     <div class="intro-demo" id="introDemo">
       <!-- mini app calendar (stylised after the real day view) -->
@@ -93,10 +108,10 @@
           </div>
         </div>
 
-        <!-- ping notification -->
+        <!-- prompt shown after the empty slot is clicked -->
         <div class="demo-ping">
-          <div class="pk">15-Minuten-Ping</div>
-          <div class="pq">Woran arbeitest du gerade?</div>
+          <div class="pk">Eintrag · 13:00 – 13:45</div>
+          <div class="pq">Woran hast du gearbeitet?</div>
           <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
         </div>
 
@@ -276,11 +291,20 @@
         <div><label class="fl">Bis</label><input type="date" class="txt" id="expTo"></div>
       </div>
       <p class="muted" id="expCount" style="margin-top:14px">—</p>
+      <details id="datevDetails" style="margin-top:14px">
+        <summary style="cursor:pointer">DATEV-Lohn-Export (für dein Lohnbüro)</summary>
+        <p class="muted" style="margin-top:10px">Stunden pro Tag als DATEV-Lohn-CSV (Lohn und Gehalt). Personalnummer und Lohnart erfragst du bei deinem Lohnbüro.</p>
+        <div class="row" style="margin-top:10px">
+          <div><label class="fl">Personalnummer</label><input type="text" inputmode="numeric" class="txt" id="datevPnr" placeholder="z.B. 1001"></div>
+          <div><label class="fl">Lohnart</label><input type="text" inputmode="numeric" class="txt" id="datevLa" placeholder="z.B. 100"></div>
+        </div>
+      </details>
     </div>
     <div class="modal-f">
       <button class="btn ghost" id="expAll">Alles</button>
       <div class="spacer"></div>
       <button class="btn ghost" id="expCancel">Abbrechen</button>
+      <button class="btn ghost" id="expDatev">↓ DATEV-Lohn</button>
       <button class="btn amber" id="expGo">↓ .xlsx</button>
     </div>
   </div>
