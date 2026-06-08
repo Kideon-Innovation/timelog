@@ -412,21 +412,96 @@
   .intro-point .pn{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
     display:grid;place-items:center;font-family:'JetBrains Mono';font-size:12px;font-weight:700}
 
-  .intro-demo{max-width:560px;margin:38px auto 0;display:flex;flex-direction:column;align-items:center}
-  .intro-bubble{width:100%;background:var(--bg-raised);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;text-align:left}
-  .intro-bubble .bk{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:6px}
-  .intro-bubble .bq{font-family:'Instrument Serif',serif;font-size:20px;margin-bottom:3px}
-  .intro-bubble .bt{font-size:11.5px;color:var(--text-faint);margin-bottom:13px}
-  .intro-bubble .bchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px}
-  .intro-bubble .bchip .dot{width:8px;height:8px;border-radius:50%;background:#5ec5b6}
-  .intro-arrow{color:var(--text-faint);font-size:20px;margin:11px 0}
-  .intro-xls{width:100%;border:1px solid var(--line-soft);border-radius:10px;overflow-x:auto}
-  .intro-xls .xr{display:grid;grid-template-columns:repeat(6,1fr);min-width:520px}
-  .intro-xls .xh{background:var(--bg-sunken);color:var(--text-faint);font-weight:600}
-  .intro-xls .xc{padding:7px 9px;border-right:1px solid var(--line-soft);font-family:'JetBrains Mono';font-size:11.5px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .intro-xls .xr .xc:last-child{border-right:0}
-  .intro-xls .xb .xc{color:var(--text-dim)}
+
+  /* ============================================================
+     ANIMATED PRODUCT DEMO — a mini, stylised app calendar that
+     gets a ping, then a fake cursor "logs" an entry as a block.
+     Reuses the look of the real calendar (.col-head/.hr-line/.block
+     vibe) at small scale. Pure CSS keyframes; JS only toggles
+     .playing on scroll-in-view. Reduced-motion → static final frame.
+     ============================================================ */
+  .intro-demo-kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin:48px auto 0;text-align:center}
+  .intro-demo{position:relative;max-width:520px;margin:16px auto 0;
+    border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);
+    background:linear-gradient(180deg,var(--bg-raised),var(--bg))}
+  .demo-cal{position:relative;height:300px;display:grid;grid-template-columns:46px 1fr}
+  .demo-gut{position:relative;border-right:1px solid var(--line-soft)}
+  .demo-gut .gl{position:absolute;right:7px;font-family:'JetBrains Mono';font-size:10px;
+    color:var(--text-faint);transform:translateY(-6px)}
+  .demo-day{position:relative}
+  .demo-day .hr-line{position:absolute;left:0;right:0;height:1px;background:var(--line-soft)}
+  .demo-chead{position:absolute;left:0;right:0;top:0;height:34px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:var(--bg);
+    border-bottom:1px solid var(--line);z-index:3}
+  .demo-chead .dow{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+  .demo-chead .dnum{font-family:'Instrument Serif';font-size:15px;line-height:1;color:var(--accent)}
+
+  /* existing, calmer entries to make the day feel lived-in */
+  .demo-blk{position:absolute;left:5px;right:5px;border-radius:6px;padding:3px 8px;overflow:hidden;
+    border-left:4px solid var(--bc);border-top:1px solid var(--bc);background:var(--bg2);
+    box-shadow:inset 0 0 0 1px #ffffff10,0 1px 3px #00000040}
+  .demo-blk .l{font-size:11px;font-weight:600;color:var(--block-lbl);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;text-shadow:var(--block-lbl-shadow)}
+  .demo-blk .t{font-family:'JetBrains Mono';font-size:8.5px;color:var(--text-dim)}
+
+  /* the new entry that the demo "logs" */
+  .demo-new{opacity:1}
+
+  /* the ping notification toast */
+  .demo-ping{position:absolute;top:42px;left:50%;transform:translateX(-50%);width:84%;z-index:6;
+    background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:12px;box-shadow:var(--shadow);padding:11px 13px;text-align:left}
+  .demo-ping .pk{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:700;margin-bottom:3px}
+  .demo-ping .pq{font-family:'Instrument Serif';font-size:15px;line-height:1.15}
+  .demo-ping .pf{display:inline-flex;align-items:center;gap:7px;margin-top:9px;
+    border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);
+    border-radius:999px;padding:4px 11px;font-size:11px;font-weight:600}
+
+  /* fake cursor */
+  .demo-cursor{position:absolute;z-index:8;width:18px;height:18px;left:0;top:0;
+    color:var(--text);filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));opacity:0;pointer-events:none}
+  .demo-cursor svg{display:block;width:18px;height:18px}
+
+  /* --- the loop (one ~5.5s cycle) --- only while .playing --- */
+  .intro-demo.playing .demo-ping{animation:dPing 5.5s ease-in-out infinite}
+  .intro-demo.playing .demo-cursor{animation:dCursor 5.5s ease-in-out infinite}
+  .intro-demo.playing .demo-new{animation:dNew 5.5s ease-in-out infinite}
+
+  @keyframes dPing{               /* pop in, then dismiss after the click */
+    0%{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}
+    8%,52%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    60%,100%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.97)}
+  }
+  @keyframes dCursor{             /* glide to the chip, "click", glide off */
+    0%,12%{opacity:0;left:78%;top:86%}
+    20%{opacity:1;left:78%;top:86%}
+    40%{opacity:1;left:42%;top:55%}      /* arrive over the ping chip */
+    46%{opacity:1;left:42%;top:55%;transform:scale(.82)}   /* click */
+    50%{opacity:1;left:42%;top:55%;transform:scale(1)}
+    66%{opacity:1;left:70%;top:32%}      /* drift toward the new block */
+    74%,100%{opacity:0;left:70%;top:32%}
+  }
+  @keyframes dNew{                /* block grows in where the entry lands */
+    0%,52%{opacity:0;transform:scaleY(.4);transform-origin:top}
+    60%{opacity:1;transform:scaleY(1);transform-origin:top}
+    62%{box-shadow:inset 0 0 0 1px var(--bc),0 2px 8px #00000055}
+    78%,100%{opacity:1;transform:scaleY(1);box-shadow:inset 0 0 0 1px #ffffff10,0 1px 3px #00000040}
+  }
+
+  /* Reduced motion (and the non-playing default): static final frame —
+     ping visible, entry placed, no cursor, no movement. */
+  @media (prefers-reduced-motion:reduce){
+    .intro-demo.playing .demo-ping,
+    .intro-demo.playing .demo-cursor,
+    .intro-demo.playing .demo-new{animation:none}
+    .demo-cursor{display:none}
+    .demo-ping{opacity:1;transform:translateX(-50%)}
+    .demo-new{opacity:1}
+  }
+  /* phones: the demo keeps the same sequence but a touch shorter */
+  @media (max-width:560px){ .demo-cal{height:264px} .intro-demo{max-width:100%} }
 
   /* local-only / offline reassurance — compact pill */
   .intro-badge{display:inline-flex;align-items:center;gap:7px;margin:28px auto 0;padding:6px 13px 6px 11px;
@@ -474,13 +549,10 @@
     .intro-point h3{font-size:15.5px;margin-bottom:9px}
     .intro-point p{font-size:14px}
 
-    /* ping → excel demo: place bubble, arrow and table side-by-side */
-    .intro-demo{max-width:980px;flex-direction:row;align-items:center;
-      justify-content:center;gap:24px;margin-top:52px}
-    .intro-bubble{flex:0 0 340px;width:auto}
-    .intro-arrow{margin:0;transform:rotate(-90deg);font-size:24px}
-    .intro-xls{flex:1 1 auto;min-width:0}
-    .intro-xls .xr{min-width:0}
+    /* product demo sits a touch larger on roomy screens */
+    .intro-demo-kick{margin-top:56px}
+    .intro-demo{max-width:560px}
+    .demo-cal{height:320px}
 
     .intro-badge{margin-top:40px}
     .intro-cta{margin-top:40px}
@@ -498,7 +570,6 @@
     .intro .lead{font-size:18px;max-width:680px}
     .intro-points{gap:26px}
     .intro-point{padding:28px 28px 30px}
-    .intro-demo{gap:32px}
   }
 </style>
 </head>
@@ -509,7 +580,7 @@
   <div class="intro-wrap">
     <p class="intro-kick">Zeiterfassung · für Kanzleien</p>
     <h1>Zeiterfassung, die du <em>wirklich</em> durchhältst.</h1>
-    <p class="lead">TimeLog fragt dich in festem Takt: woran arbeitest du gerade — für welchen Mandanten? Ein Stichwort genügt. Am Monatsende ziehst du dir alles als Excel — fertiger Stundenzettel, abrechenbar.</p>
+    <p class="lead">Ein Stichwort pro Ping — am Monatsende ein fertiger, abrechenbarer Stundenzettel.</p>
 
     <div class="trust">
       <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>DSGVO-konform</span>
@@ -522,33 +593,56 @@
     <div class="intro-points">
       <div class="intro-point">
         <h3><span class="pn">1</span> Jede vergessene Viertelstunde ist Honorar</h3>
-        <p>Manuelle Zeiterfassung zahlt sich nur aus, wenn du sie konsequent mitschreibst. Jede nicht erfasste Viertelstunde ist abrechenbare Zeit, die du nie auf die Rechnung bringst. TimeLog macht das Mitschreiben mühelos — es fragt dich, statt darauf zu warten, dass du dran denkst.</p>
+        <p>Nicht erfasste Zeit ist abrechenbares Honorar, das nie auf die Rechnung kommt.</p>
       </div>
       <div class="intro-point">
         <h3><span class="pn">2</span> Automatik weiß nicht, für welchen Mandanten</h3>
-        <p>Tools, die Fenster, Dateien und Aktivität mitschneiden, sehen die App — aber nie die Sache. Welcher Mandant, welches Aktenzeichen: das weißt nur du. Also rekonstruierst du es am Monatsende doch wieder aus dem Gedächtnis.</p>
+        <p>Tracker sehen App und Fenster — aber nie, für welchen Mandanten du gerade arbeitest.</p>
       </div>
       <div class="intro-point">
-        <h3><span class="pn">3</span> TimeLog fragt einfach</h3>
-        <p>In ruhigem Takt ein kurzer Ping: woran arbeitest du gerade? Ein Stichwort — Mandant, Sache, Tätigkeit — und du bist durch. Am Monatsende siehst du alles als Excel — fertiger Stundenzettel.</p>
+        <h3><span class="pn">3</span> Ohne Disziplin lückenlos</h3>
+        <p>TimeLog fragt von selbst — kein Drandenken, keine Lücke bleibt offen.</p>
       </div>
     </div>
 
-    <div class="intro-demo">
-      <div class="intro-bubble">
-        <div class="bk">15-Minuten-Ping</div>
-        <div class="bq">Woran hast du gearbeitet?</div>
-        <div class="bt">13:00 – 13:15 · Mo 8. Jun</div>
-        <span class="bchip"><span class="dot"></span> Projekt Atlas – Sprint-Planung</span>
-      </div>
-      <div class="intro-arrow">↓</div>
-      <div class="intro-xls">
-        <div class="xr xh">
-          <div class="xc">Datum</div><div class="xc">Tag</div><div class="xc">Start</div><div class="xc">Ende</div><div class="xc">Min</div><div class="xc">Tätigkeit</div>
+    <p class="intro-demo-kick">So fühlt sich das an</p>
+    <div class="intro-demo" id="introDemo">
+      <!-- mini app calendar (stylised after the real day view) -->
+      <div class="demo-cal" aria-hidden="true">
+        <div class="demo-gut">
+          <span class="gl" style="top:64px">10</span>
+          <span class="gl" style="top:124px">11</span>
+          <span class="gl" style="top:184px">12</span>
+          <span class="gl" style="top:244px">13</span>
         </div>
-        <div class="xr xb">
-          <div class="xc">08.06.2026</div><div class="xc">Mo</div><div class="xc">13:00</div><div class="xc">13:15</div><div class="xc">15</div><div class="xc">Projekt Atlas – Sprint-Planung</div>
+        <div class="demo-day">
+          <div class="demo-chead"><span class="dow">Mo</span><span class="dnum">8</span></div>
+          <div class="hr-line" style="top:64px"></div>
+          <div class="hr-line" style="top:124px"></div>
+          <div class="hr-line" style="top:184px"></div>
+          <div class="hr-line" style="top:244px"></div>
+          <!-- lived-in entries -->
+          <div class="demo-blk" style="top:70px;height:44px;--bc:#6b86b0;--bg2:#6b86b03a">
+            <div class="l">Mandant Berg – Telefonat</div><div class="t">10:00 – 10:45</div>
+          </div>
+          <div class="demo-blk" style="top:130px;height:48px;--bc:#8aa173;--bg2:#8aa1733a">
+            <div class="l">Akte Lindner – Prüfung</div><div class="t">11:00 – 11:45</div>
+          </div>
+          <!-- the entry the demo logs into the 13:00 slot -->
+          <div class="demo-blk demo-new" style="top:250px;height:44px;--bc:#c49a6c;--bg2:#c49a6c3a">
+            <div class="l">Projekt Atlas – Schriftsatz</div><div class="t">13:00 – 13:45</div>
+          </div>
         </div>
+
+        <!-- ping notification -->
+        <div class="demo-ping">
+          <div class="pk">15-Minuten-Ping</div>
+          <div class="pq">Woran arbeitest du gerade?</div>
+          <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
+        </div>
+
+        <!-- fake cursor -->
+        <span class="demo-cursor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2l14 7-6 2-2 6-6-15z"/></svg></span>
       </div>
     </div>
 
@@ -1560,8 +1654,22 @@ $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.target.value=""; };
 
 /* first-run intro */
-function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; }
+function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; armIntroDemo(); }
 function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true"); }
+
+/* Ping→Excel preview: loop the CSS animation only while it's actually
+   on screen. Scoped to the scrolling .intro container; CSS already
+   neutralises everything under prefers-reduced-motion. Set up once. */
+let _demoObserver=null;
+function armIntroDemo(){
+  const demo=$("introDemo"); if(!demo) return;
+  if(_demoObserver){ _demoObserver.disconnect(); }
+  if(!("IntersectionObserver" in window)){ demo.classList.add("playing"); return; }
+  _demoObserver=new IntersectionObserver((entries)=>{
+    for(const e of entries) demo.classList.toggle("playing", e.isIntersecting);
+  }, {root:$("intro"), threshold:0.4});
+  _demoObserver.observe(demo);
+}
 function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); refreshExportReminder(); }
 $("introStart").onclick=dismissIntro;
 $("introInstall").onclick=()=>$("installBtn").click();   // reuse existing install flow (prompt / iOS help)
