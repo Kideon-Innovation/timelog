@@ -1,7 +1,7 @@
 # TimeLog
 
 **Zeiterfassung für Kanzleien.** · **Für Berufsgeheimnisträger (§203) · DSGVO-konform · Funktioniert offline**
-Live: https://kideon-innovation.github.io/timelogging/
+Live: https://timelog.kideon.de/
 
 TimeLog ist eine App für die Zeiterfassung in Kanzleien — Steuer- und Rechtsberatung. Sie
 fragt dich in festem Takt — *„woran arbeitest du gerade, für welchen Mandanten?"* — du
