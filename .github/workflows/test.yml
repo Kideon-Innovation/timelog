@@ -1,16 +1,17 @@
 name: Tests
 
 on:
-  pull_request:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 
+# Read-only; this job only builds and runs tests, it does not deploy.
+permissions:
+  contents: read
+
 jobs:
-  e2e:
+  test:
     runs-on: ubuntu-latest
-    env:
-      PORT: 47811
     steps:
       - uses: actions/checkout@v4
 
@@ -22,15 +23,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Playwright test runner is not a project dependency (browsers are cached
-      # globally on dev machines). In CI we install it ad-hoc, pinned, plus
-      # Chromium with its system deps.
-      - name: Install Playwright (pinned) + Chromium
+      # Playwright is NOT a project dependency (it's used globally in dev). Pin
+      # the exact version the specs were written against and fetch its Chromium.
+      - name: Install Playwright (1.58.2) + Chromium
         run: |
-          npm i --no-save @playwright/test@1.58.2
+          npm install --no-save @playwright/test@1.58.2
           npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Build (Vite + vite-plugin-pwa)
+        run: npm run build
+
+      - name: Unit tests (pure helpers)
+        run: npm run test:unit
+
+      - name: E2E tests (Playwright)
         run: npx playwright test
 
       - uses: actions/upload-artifact@v4

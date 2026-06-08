@@ -10,6 +10,7 @@ tl-*.png
 .DS_Store
 test-results/
 playwright-report/
+shots/
 
 # local agent / editor config
 .claude/
