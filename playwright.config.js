@@ -6,6 +6,10 @@ const BASE = `http://localhost:${PORT}/timelog/`;
 
 export default defineConfig({
   testDir: './tests',
+  // Browser E2E specs only. Pure-unit assertions live in *.test.js and run
+  // under Node's own test runner (`node --test`), not Playwright — excluding
+  // them here keeps Playwright from importing/executing node:test files.
+  testMatch: '**/*.spec.js',
   fullyParallel: true,
   reporter: 'list',
   timeout: 30000,
