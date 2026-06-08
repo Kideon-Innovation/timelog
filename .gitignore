@@ -1,7 +1,14 @@
+# build / dependencies
+node_modules/
+dist/
+dev-dist/
+
 # test / dev artifacts
 .playwright-mcp/
 tl-*.png
 .DS_Store
+test-results/
+playwright-report/
 
 # local agent / editor config
 .claude/

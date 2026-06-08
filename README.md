@@ -112,13 +112,24 @@ im Excel-Export.
 
 ## Tech
 
-Vanilla HTML/CSS/JS, kein Framework, kein Build-Step. Die PWA besteht aus `index.html` +
-`manifest.webmanifest` + `sw.js` (Service Worker) + `icons/`. [SheetJS](https://sheetjs.com)
-ist lokal unter `vendor/` gebündelt, damit der Export auch offline (und von `file://`)
-funktioniert. Sonst keine Abhängigkeiten.
+Vanilla HTML/CSS/JS, kein Framework — die ganze App lebt weiterhin in einer einzigen
+`index.html` (inline CSS + JS). [SheetJS](https://sheetjs.com) liegt lokal unter
+`public/vendor/`, damit der Export auch offline funktioniert.
 
-Alle Pfade sind **relativ** — die App läuft unverändert auf dem GitHub-Pages-Subpfad
-(`…/timelog/`) wie auf jeder anderen Domain.
+Gebaut wird mit **[Vite](https://vitejs.dev) + [vite-plugin-pwa](https://vite-pwa-org.netlify.app)**.
+Vite ist nur ein dünner Wrapper um die `index.html`: es setzt den Subpfad (`base: '/timelog/'`),
+hasht Assets und lässt vite-plugin-pwa einen Workbox-Service-Worker generieren. Der SW
+**precached** die App-Shell (offline) und ist auf **`registerType: 'autoUpdate'`** mit
+`skipWaiting` + `clientsClaim` konfiguriert: ein neuer Deploy installiert sich, übernimmt sofort
+und die Seite lädt automatisch auf die neue Version neu — **kein manuelles Hard-Refresh**, offline
+bleibt erhalten. `public/icons/` und `public/screenshots/` werden unverändert ausgeliefert.
+
+```bash
+npm ci        # Abhängigkeiten
+npm run dev   # lokaler Dev-Server
+npm run build # Produktions-Build nach dist/
+npm run preview  # dist/ lokal servieren
+```
 
 ### Icons & Screenshots neu generieren
 
@@ -132,8 +143,10 @@ PORT=8000 PLAYWRIGHT_MODULE="$(npm root -g)/@playwright/test/index.js" node scri
 
 ## Deployment (GitHub Pages)
 
-Repo → Settings → Pages → Source: `main` / root. Fertig. GitHub Pages liefert über HTTPS aus,
-damit funktionieren Service Worker und Installation out of the box.
+Repo → Settings → Pages → Source: **GitHub Actions**. Jeder Push auf `main` baut über
+`.github/workflows/deploy.yml` mit Vite (`npm ci && npm run build`) und veröffentlicht `dist/`
+via `actions/deploy-pages`. GitHub Pages liefert über HTTPS aus — Service Worker, Auto-Update
+und Installation funktionieren out of the box.
 
 ## Lizenz
 
