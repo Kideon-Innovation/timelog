@@ -1,7 +1,7 @@
 {
-  "name": "TimeLog — Passive Zeiterfassung per Ping",
+  "name": "TimeLog — Zeiterfassung für Kanzleien",
   "short_name": "TimeLog",
-  "description": "Passive Zeiterfassung per Ping — pingt dich in festen Abständen und baut deinen Tag als Blöcke auf. Offline, ohne Login, Export als Excel.",
+  "description": "Zeiterfassung für Kanzleien. TimeLog fragt dich in festem Takt, woran du arbeitest, und baut deinen Stundenzettel als Blöcke auf. DSGVO-konform, weil alles lokal im Browser bleibt: kein Server, kein Login, voll offline. Export als Excel.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./",

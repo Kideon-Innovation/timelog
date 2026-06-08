@@ -1,12 +1,17 @@
 # TimeLog
 
-**Passive Zeiterfassung per Ping.**
+**Zeiterfassung für Kanzleien.** · **DSGVO-konform · Für Kanzleien gemacht · Funktioniert offline**
 Live: https://kideon-innovation.github.io/timelogging/
 
-TimeLog ist eine installierbare **Progressive Web App** — kein Backend, kein Login, läuft
-offline. Sie pingt dich in festen Abständen — *„woran arbeitest du gerade?"* — du tippst ein
-Stichwort, und dein Tag wächst als farbige Blöcke in einer Kalenderansicht. Am Ende
-exportierst du alles als Excel.
+TimeLog ist eine installierbare **Progressive Web App** für die Zeiterfassung in Kanzleien —
+Steuer- und Rechtsberatung. Sie fragt dich in festem Takt — *„woran arbeitest du gerade,
+für welchen Mandanten?"* — du tippst ein Stichwort, und dein Tag wächst als farbige Blöcke
+in einer Kalenderansicht. Am Monatsende exportierst du alles als Excel: fertiger
+Stundenzettel, abrechenbar.
+
+**DSGVO-konform durch Bauweise:** kein Backend, kein Login, kein Konto. Alle Daten — auch
+Mandantennamen — bleiben lokal im Browser und verlassen das Gerät nie. Das ist zugleich der
+Grund, warum die App komplett **offline** läuft.
 
 Das Ping-Intervall ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15).
 Der Takt ist zugleich die Blockgröße — kürzeres Intervall = feinere Auflösung, mehr Pings.
@@ -15,16 +20,20 @@ Der Takt ist zugleich die Blockgröße — kürzeres Intervall = feinere Auflös
 
 ## Idee
 
-Klassische Zeiterfassung verlangt, dass du selbst dran denkst, Timer zu starten und zu
-stoppen. TimeLog dreht das um: **es fragt dich**, in regelmäßigem Takt. Du musst nichts
-steuern, nur antworten. Daraus entsteht passiv ein lückenloses Bild deines Tages.
+In einer Kanzlei ist jede vergessene Viertelstunde **Honorar, das du nicht abrechnest.**
+Manuelle Zeiterfassung zahlt sich nur aus, wenn du sie konsequent mitschreibst — und genau
+daran scheitert sie im Alltag. Automatische Tracker wiederum sehen zwar App, Fenster und
+Datei, aber nie die *Sache*: welcher Mandant, welches Aktenzeichen weiß nur du. Also
+rekonstruierst du es am Monatsende doch wieder aus dem Gedächtnis.
 
-Es ist absichtlich agnostisch, *was* du trackst — Arbeit, Lernen, Telefonate, Pausen.
-Ein Slot ist einfach „was war in diesen 15 Minuten". Gedacht als ruhiges Pendant zu
-Pomodoro: nicht antreiben, sondern beobachten und rückblicken.
+TimeLog dreht das um: **es fragt dich**, in regelmäßigem Takt. Ein Stichwort — Mandant,
+Sache, Tätigkeit — und du bist durch. Daraus entsteht ohne Disziplin-Aufwand ein lückenloser,
+abrechenbarer Stundenzettel.
 
-**Leere Blöcke sind gewollt.** Nicht am Rechner = kein Block. TimeLog drängt dich nie,
-Lücken zu füllen; leer lassen ist immer ein Klick.
+**Leere Blöcke sind gewollt.** Nicht getrackt = kein Block. TimeLog drängt dich nie,
+Lücken zu füllen; leer lassen ist immer ein Klick. Ein dezenter Heartbeat im Kalender zeigt
+dir nebenbei, wann der Rechner überhaupt an war — so siehst du auf einen Blick, welche
+Lücken echte Pausen sind und welche noch nachzutragen sind.
 
 ## Wie es funktioniert
 
@@ -77,12 +86,18 @@ komplett offline.
 
 ![TimeLog – Light Theme](screenshots/desktop-light.png)
 
-## Daten & Privatsphäre
+## Daten & Privatsphäre (DSGVO)
 
 Alles bleibt lokal. Daten liegen im `localStorage` deines Browsers (Key `timelog.v1`),
 überleben Reloads und verlassen nie deinen Rechner. Kein Server, kein Tracking, kein
-Account. Anderer Browser oder gelöschter Speicher = die Daten sind weg, also bei Bedarf
-regelmäßig als Excel exportieren.
+Account. Für eine Kanzlei heißt das: Mandantendaten werden nirgendwo hochgeladen oder an
+Dritte übermittelt — es gibt keine Auftragsverarbeitung, weil es keinen Verarbeiter gibt.
+Das ist die einfachste Form von DSGVO-Konformität. Anderer Browser oder gelöschter Speicher
+= die Daten sind weg, also bei Bedarf regelmäßig als Excel exportieren.
+
+Der dezente **Heartbeat** (wann der Rechner an war) liegt unter einem eigenen Key
+(`timelog.heartbeat.v1`), bleibt ebenfalls rein lokal, wird auf die letzten 7 Tage begrenzt
+und landet nie im Excel-Export.
 
 ## Tech
 

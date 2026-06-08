@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>TimeLog — Passive Zeiterfassung per Ping</title>
+<title>TimeLog — Zeiterfassung für Kanzleien</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#faf9f7" id="metaTheme">
 <meta name="color-scheme" content="dark light">
 <meta name="application-name" content="TimeLog">
-<meta name="description" content="Passive Zeiterfassung per Ping — pingt dich in festen Abständen und baut deinen Tag als Blöcke auf. Offline, ohne Login, Export als Excel.">
+<meta name="description" content="Zeiterfassung für Kanzleien — TimeLog fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel als Blöcke auf. DSGVO-konform, weil alles lokal im Browser bleibt: kein Server, kein Login, voll offline. Export als Excel.">
 <!-- iOS standalone -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,6 +49,8 @@
     --block-lbl-shadow:none;
     --grain:.02;
     --scrim:rgba(15,33,55,.45);
+    --btn-hover-bg:#f3f1ed;
+    --btn-hover-line:#d8cdbb;
     color-scheme:light;
   }
   /* Kideon dark theme — navy-based, copper accent. */
@@ -71,6 +73,8 @@
     --block-lbl-shadow:0 1px 2px #00000099;
     --grain:.03;
     --scrim:rgba(6,12,20,.7);
+    --btn-hover-bg:#234062;
+    --btn-hover-line:#3a5d85;
     color-scheme:dark;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -147,14 +151,14 @@
     background:var(--bg-raised);border:1px solid var(--line);border-radius:8px;
     height:34px;padding:0 13px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   }
-  button.btn:hover{border-color:#4a4030;background:#272118}
+  button.btn:hover{border-color:var(--btn-hover-line);background:var(--btn-hover-bg);color:var(--text)}
   button.btn.amber{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
   button.btn.amber:hover{filter:brightness(1.07)}
   button.btn.ghost{background:transparent}
   button.icon{width:34px;height:34px;padding:0;justify-content:center;font-size:15px}
   .hsel{font-family:'JetBrains Mono';font-size:12px;color:var(--text);background:var(--bg-raised);
     border:1px solid var(--line);border-radius:8px;height:34px;padding:0 10px;cursor:pointer}
-  .hsel:hover{border-color:#4a4030}
+  .hsel:hover{border-color:var(--btn-hover-line)}
 
   /* ---------- overflow menu (hamburger) ---------- */
   .menu-wrap{position:relative}
@@ -189,6 +193,28 @@
   .legend .sw{width:11px;height:11px;border-radius:3px}
 
   /* ---------- calendar ---------- */
+  /* ---------- notifications-off nudge ---------- */
+  .nudge{display:flex;align-items:center;gap:12px;
+    padding:10px 24px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--accent-soft),transparent);
+    color:var(--text-dim);font-size:13px;line-height:1.45}
+  .nudge[hidden]{display:none}
+  .nudge .nudge-ic{font-size:15px;flex:0 0 auto}
+  .nudge .nudge-txt{flex:1;min-width:0}
+  .nudge .nudge-txt em{font-style:normal;color:var(--text-faint)}
+  .nudge .nudge-act{height:30px;padding:0 14px;font-size:12.5px;flex:0 0 auto}
+  .nudge .nudge-x{flex:0 0 auto;width:28px;height:28px;border:0;border-radius:7px;cursor:pointer;
+    background:transparent;color:var(--text-faint);font-size:18px;line-height:1;transition:.13s}
+  .nudge .nudge-x:hover{background:var(--bg-sunken);color:var(--text)}
+  @media (max-width:760px){
+    .nudge{padding:9px 14px;gap:9px;flex-wrap:wrap}
+    .nudge .nudge-txt{flex:1 1 100%;order:2;font-size:12.5px}
+    .nudge .nudge-ic{order:1}
+    .nudge .nudge-act{order:1;margin-left:auto}
+    .nudge .nudge-x{order:1}
+  }
+
+  /* ---------- calendar ---------- */
   .cal-wrap{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
   .cal-wrap::-webkit-scrollbar{width:11px}
   .cal-wrap::-webkit-scrollbar-thumb{background:#322a20;border-radius:6px;border:3px solid var(--bg)}
@@ -218,6 +244,12 @@
   .daycol.today{background:linear-gradient(180deg,#f5a6230a,transparent 30%)}
   .hr-line{position:absolute;left:0;right:0;height:1px;background:var(--line-soft)}
   .hr-line.major{background:var(--line)}
+
+  /* heartbeat rail — ambient "laptop was alive" marks in a thin left gutter.
+     Whisper-quiet copper so it never competes with entry blocks or the now-line. */
+  .beat{position:absolute;left:0;width:3px;border-radius:2px;background:var(--accent);
+    opacity:.4;z-index:1;pointer-events:none}
+  html[data-theme="dark"] .beat{opacity:.5}
 
   .block{
     position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
@@ -266,7 +298,7 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .chip-b{font-family:'DM Sans';font-size:12.5px;color:var(--text);background:var(--bg-sunken);
     border:1px solid var(--line);border-left:3px solid var(--bc,#888);border-radius:20px;padding:6px 13px;cursor:pointer;transition:.13s}
-  .chip-b:hover{background:#272118;border-color:#4a4030}
+  .chip-b:hover{background:var(--btn-hover-bg);border-color:var(--btn-hover-line)}
   .chip-b.same{border-color:var(--accent);color:var(--accent)}
 
   /* catch-up rows */
@@ -355,6 +387,15 @@
   .intro h1 em{font-style:italic;color:var(--accent)}
   .intro .lead{font-size:15px;line-height:1.7;color:var(--text-dim);max-width:540px;margin:0 auto}
 
+  /* trust strip — DSGVO · Kanzlei · offline */
+  .trust{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 16px;
+    margin:26px auto 0;max-width:540px}
+  .trust .tc{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+  .trust .tc svg{width:14px;height:14px;flex:0 0 14px;color:var(--accent)}
+  .trust .sep{width:4px;height:4px;border-radius:50%;background:var(--line);flex:0 0 4px}
+  @media (max-width:560px){ .trust .sep{display:none} }
+
   .intro-points{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:40px auto 0;text-align:left}
   .intro-point{background:var(--bg-raised);border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px}
   .intro-point h3{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px}
@@ -392,22 +433,30 @@
 <!-- First-run pitch (empty-state intro) -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-wrap">
-    <p class="intro-kick">Passive Zeiterfassung · per Ping</p>
+    <p class="intro-kick">Zeiterfassung · für Kanzleien</p>
     <h1>Zeiterfassung, die du <em>wirklich</em> durchhältst.</h1>
-    <p class="lead">TimeLog fragt alle paar Minuten kurz: woran arbeitest du gerade? Ein Stichwort genügt. Am Monatsende ziehst du dir alles als Excel — fertiger Stundenzettel.</p>
+    <p class="lead">TimeLog fragt dich in festem Takt: woran arbeitest du gerade — für welchen Mandanten? Ein Stichwort genügt. Am Monatsende ziehst du dir alles als Excel — fertiger Stundenzettel, abrechenbar.</p>
+
+    <div class="trust">
+      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>DSGVO-konform</span>
+      <span class="sep"></span>
+      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-5h6v5"/></svg>Für Kanzleien gemacht</span>
+      <span class="sep"></span>
+      <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9 19l-3-7 9-9-3 8 6-1-9 9 1-6-5-.5Z"/></svg>Funktioniert offline</span>
+    </div>
 
     <div class="intro-points">
       <div class="intro-point">
-        <h3><span class="pn">1</span> Hand-Tracking scheitert an dir</h3>
-        <p>Tägliche Zeiterfassung setzt Disziplin voraus. Nach drei Tagen schreibst du nicht mehr mit — und rekonstruierst die Woche aus dem Gedächtnis.</p>
+        <h3><span class="pn">1</span> Jede vergessene Viertelstunde ist Honorar</h3>
+        <p>Manuelle Zeiterfassung zahlt sich nur aus, wenn du sie konsequent mitschreibst. Jeder ungetrackte Slot ist abrechenbare Zeit, die du nie auf die Rechnung bringst. TimeLog macht das Mitschreiben mühelos — es fragt dich, statt darauf zu warten, dass du dran denkst.</p>
       </div>
       <div class="intro-point">
-        <h3><span class="pn">2</span> Automatisches Tracking weiß nicht, für wen</h3>
-        <p>Tools, die Fenster, Screenshots und Aktivität mitschneiden, kennen die App. Den Mandanten kennen sie nicht. Am Monatsende rätst du trotzdem, welches Projekt das war.</p>
+        <h3><span class="pn">2</span> Automatik weiß nicht, für welchen Mandanten</h3>
+        <p>Tools, die Fenster, Dateien und Aktivität mitschneiden, sehen die App — aber nie die Sache. Welcher Mandant, welches Aktenzeichen: das weißt nur du. Also rekonstruierst du es am Monatsende doch wieder aus dem Gedächtnis.</p>
       </div>
       <div class="intro-point">
         <h3><span class="pn">3</span> TimeLog fragt einfach</h3>
-        <p>Alle 15 Minuten ein kurzer Ping. Du tippst ein Stichwort — Mandant, Projekt, Tätigkeit. Excel-Export, wann immer du willst.</p>
+        <p>In ruhigem Takt ein kurzer Ping: woran arbeitest du gerade? Ein Stichwort — Mandant, Sache, Tätigkeit — und du bist durch. Am Monatsende siehst du alles als Excel — fertiger Stundenzettel.</p>
       </div>
     </div>
 
@@ -429,7 +478,7 @@
       </div>
     </div>
 
-    <div class="intro-badge">🔒 100% lokal — deine Daten verlassen dieses Gerät nie. Kein Server, kein Login, kein Tracking.</div>
+    <div class="intro-badge">🔒 Alles bleibt lokal im Browser — kein Server, kein Login. Mandantendaten verlassen dieses Gerät nie. Genau das macht TimeLog DSGVO-konform.</div>
 
     <div class="intro-cta">
       <button class="btn amber" id="introStart">Loslegen →</button>
@@ -444,7 +493,7 @@
     <div class="brand">
       <span class="dot"></span>
       <h1>TimeLog</h1>
-      <small>Passive Zeiterfassung per Ping</small>
+      <small>Zeiterfassung für Kanzleien</small>
     </div>
     <div class="clock">
       <span class="big mono" id="clock">--:--</span>
@@ -486,6 +535,15 @@
       <input type="file" id="importFile" accept=".xlsx,.xls" hidden>
     </div>
   </header>
+
+  <!-- Notifications-off nudge: ambient bar, dismissible once -->
+  <div class="nudge" id="notifyNudge" hidden>
+    <span class="nudge-ic" aria-hidden="true">🔔</span>
+    <span class="nudge-txt">TimeLog kann dich nur erinnern, wenn Benachrichtigungen an sind.
+      <em id="nudgeHint"></em></span>
+    <button class="btn amber nudge-act" id="nudgeEnable">Aktivieren</button>
+    <button class="nudge-x" id="nudgeDismiss" title="Ausblenden" aria-label="Hinweis ausblenden">×</button>
+  </div>
 
   <div class="subbar">
     <button class="btn icon" id="prevBtn" title="Zurück">◀</button>
@@ -608,9 +666,9 @@ function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
     if(s && s.blocks) return Object.assign({blocks:[],recentLabels:[],settings:{}}, s,
-      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,theme:"light"}, s.settings||{})});
+      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,theme:"light"}, s.settings||{})});
   }catch(e){}
-  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,theme:"light"}};
+  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,theme:"light"}};
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -682,6 +740,36 @@ function fillRange(s,e,label){
 function lastLabel(){
   if(!state.blocks.length) return state.recentLabels[0]||"";
   return [...state.blocks].sort((a,b)=>new Date(b.start)-new Date(a.start))[0].label;
+}
+
+/* ============================================================
+   HEARTBEAT — passive "machine was alive" log.
+   While the tab is visible we stamp the current slot every ~60s.
+   Stored as a flat array of slot-ISO strings under its own key
+   (kept out of timelog.v1 so it never lands in the Excel export).
+   Pruned to the last HEARTBEAT_DAYS days to stay tiny.
+   ============================================================ */
+const HEARTBEAT_KEY = "timelog.heartbeat.v1";
+const HEARTBEAT_DAYS = 7;
+let heartbeats = loadHeartbeats();
+function loadHeartbeats(){
+  try{ const a=JSON.parse(localStorage.getItem(HEARTBEAT_KEY)); if(Array.isArray(a)) return new Set(a); }catch(e){}
+  return new Set();
+}
+function saveHeartbeats(){ localStorage.setItem(HEARTBEAT_KEY, JSON.stringify([...heartbeats])); }
+function pruneHeartbeats(){
+  const cutoff=Date.now()-HEARTBEAT_DAYS*86400000; let changed=false;
+  for(const s of heartbeats){ if(new Date(s).getTime()<cutoff){ heartbeats.delete(s); changed=true; } }
+  return changed;
+}
+/* stamp the current slot as alive; returns true if a new slot was added */
+function beat(){
+  const key=iso(floorSlot(new Date()));
+  const had=heartbeats.has(key);
+  heartbeats.add(key);
+  const pruned=pruneHeartbeats();
+  if(!had||pruned) saveHeartbeats();
+  return !had;
 }
 
 /* gaps: unfilled past slots within CATCHUP_CAP_MS, oldest-first */
@@ -779,6 +867,14 @@ function renderCalendar(){
       ln.style.top=(h*HOUR_PX)+"px"; col.appendChild(ln);
     }
 
+    // heartbeat rail: faint marks where the machine was alive that day
+    beatRuns(day).forEach(run=>{
+      const b=document.createElement("div"); b.className="beat";
+      b.style.top=(run.startMin*PX_PER_MIN)+"px";
+      b.style.height=Math.max(2,(run.endMin-run.startMin)*PX_PER_MIN-1)+"px";
+      col.appendChild(b);
+    });
+
     // current-slot highlight + now line
     if(isToday){
       const ss=floorSlot(now);
@@ -823,6 +919,21 @@ function mergeRuns(blocks){
     } else segs.push({start:b.start,end:b.end,label:b.label,blocks:[b]});
   }
   return segs;
+}
+/* heartbeat slots for one day → merged [startMin,endMin) runs.
+   Each beat covers SLOT_MIN minutes; touching/overlapping beats merge. */
+function beatRuns(day){
+  const mins=[];
+  for(const s of heartbeats){ const d=new Date(s); if(sameDay(d,day)) mins.push(minOfDay(d)); }
+  if(!mins.length) return [];
+  mins.sort((a,b)=>a-b);
+  const runs=[];
+  for(const m of mins){
+    const last=runs[runs.length-1];
+    if(last && m<=last.endMin) last.endMin=Math.max(last.endMin,m+SLOT_MIN);
+    else runs.push({startMin:m,endMin:m+SLOT_MIN});
+  }
+  return runs;
 }
 function minOfDay(d){ return d.getHours()*60+d.getMinutes(); }
 function blockDurMin(b){ return (new Date(b.end)-new Date(b.start))/60000; }
@@ -894,7 +1005,7 @@ function openCatchup(gaps){
     const row=document.createElement("div"); row.className="gaprow";
     const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
     const inp=document.createElement("input"); inp.setAttribute("list","labelList"); inp.setAttribute("autocomplete","off");
-    inp.placeholder="leer lassen, wenn weg vom PC";
+    inp.placeholder="leer lassen, wenn nicht getrackt werden soll";
     const skip=document.createElement("span"); skip.className="skip"; skip.textContent="✕";
     skip.title="leer lassen"; skip.onclick=()=>{ inp.value=""; row.classList.add("done"); };
     row.append(tg,inp,skip);
@@ -1257,7 +1368,7 @@ $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.
 /* first-run intro */
 function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; }
 function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true"); }
-function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); }
+function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); }
 $("introStart").onclick=dismissIntro;
 $("introInstall").onclick=()=>$("installBtn").click();   // reuse existing install flow (prompt / iOS help)
 $("aboutBtn").onclick=()=>showIntro();
@@ -1366,7 +1477,7 @@ function initInterval(){
 $("soundBtn").onclick=()=>{ state.settings.soundOn=!state.settings.soundOn; save();
   $("soundBtn").textContent=state.settings.soundOn?"🔊 Ton an":"🔈 Ton aus";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
-  if(state.settings.soundOn) beep(); toast("Ton "+(state.settings.soundOn?"an":"aus")); };
+  if(state.settings.soundOn) beep(); refreshNotifyNudge(); toast("Ton "+(state.settings.soundOn?"an":"aus")); };
 
 $("notifyBtn").onclick=async()=>{
   if(!("Notification" in window)){ toast("Browser kann keine Notifications"); return; }
@@ -1379,14 +1490,52 @@ function refreshNotifyBtn(){
   const on=state.settings.notifyOn && ("Notification" in window) && Notification.permission==="granted";
   $("notifyBtn").textContent=on?"🔔 An":"🔔 Notify";
   $("notifyBtn").classList.toggle("ghost",!on);
+  refreshNotifyNudge();
 }
+
+/* ---------- notifications-off nudge ----------
+   Reminds the user TimeLog can only ping them when OS notifications are on.
+   Shown once until dismissed; vanishes on its own once notifications are granted. */
+function notifyGranted(){
+  return state.settings.notifyOn && ("Notification" in window) && Notification.permission==="granted";
+}
+function refreshNotifyNudge(){
+  const supported = "Notification" in window;
+  const show = supported && !notifyGranted() && !state.settings.notifyNudgeDismissed
+            && !$("intro").classList.contains("show");
+  $("notifyNudge").hidden = !show;
+  if(show){
+    // sound is the fallback ping channel — mention it if that's off too
+    $("nudgeHint").textContent = state.settings.soundOn
+      ? "Jetzt aktivieren — den Ping-Takt stellst du im Menü unter Blockgröße ein."
+      : "Auch der Ton ist aus. Jetzt aktivieren — den Takt stellst du im Menü unter Blockgröße ein.";
+  }
+}
+$("nudgeDismiss").onclick=()=>{ state.settings.notifyNudgeDismissed=true; save(); refreshNotifyNudge(); };
+$("nudgeEnable").onclick=async()=>{
+  if("Notification" in window){
+    let p=Notification.permission;
+    if(p!=="granted") p=await Notification.requestPermission();
+    state.settings.notifyOn=(p==="granted");
+  }
+  if(!state.settings.soundOn){ state.settings.soundOn=true;
+    $("soundBtn").textContent="🔊 Ton an"; $("soundBtn").classList.remove("ghost"); beep(); }
+  save(); refreshNotifyBtn();
+  if(notifyGranted()) toast("Benachrichtigungen an — du wirst jetzt erinnert");
+  else { openMenu(); toast("Den Ping-Takt stellst du hier unter Blockgröße ein"); }
+};
 
 // close scrim on backdrop click / Esc
 document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("mousedown",e=>{ if(e.target===s) s.classList.remove("show"); }));
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ document.querySelectorAll(".scrim.show").forEach(s=>s.classList.remove("show")); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
 
 // returning to tab → catch up
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
+window.addEventListener("focus",recordBeat);
+
+/* heartbeat: stamp the current slot while the tab is visible.
+   If a brand-new slot lit up, repaint so the rail stays current. */
+function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
 
 function scrollToNow(){
   const y=minOfDay(new Date())*PX_PER_MIN - 200;
@@ -1401,10 +1550,12 @@ function boot(){
   $("soundBtn").textContent=state.settings.soundOn?"🔊 Ton an":"🔈 Ton aus";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
   refreshNotifyBtn();
+  recordBeat();                       // mark this slot alive on load
   render();
   scrollToNow();
   tickClock();
   setInterval(tickClock,1000);
+  setInterval(recordBeat,60000);      // heartbeat every ~60s while visible
   scheduleTick();
 
   // iOS has no beforeinstallprompt — surface the install help button manually
