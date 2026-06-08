@@ -248,8 +248,11 @@
   /* heartbeat rail — ambient "laptop was alive" marks in a thin left gutter.
      Whisper-quiet copper so it never competes with entry blocks or the now-line. */
   .beat{position:absolute;left:0;width:3px;border-radius:2px;background:var(--accent);
-    opacity:.4;z-index:1;pointer-events:none}
+    opacity:.4;z-index:1;cursor:help}
   html[data-theme="dark"] .beat{opacity:.5}
+  /* invisible hover target so the 3px rail is comfortably hoverable for its title tooltip */
+  .beat::after{content:"";position:absolute;top:0;bottom:0;left:-2px;width:14px}
+  .beat:hover{opacity:.85}
 
   .block{
     position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
@@ -915,6 +918,11 @@ function renderCalendar(){
       const b=document.createElement("div"); b.className="beat";
       b.style.top=(run.startMin*PX_PER_MIN)+"px";
       b.style.height=Math.max(2,(run.endMin-run.startMin)*PX_PER_MIN-1)+"px";
+      b.setAttribute("role","img");
+      b.setAttribute("aria-label","Aktivitätsspur "+minLabel(run.startMin)+"–"+minLabel(run.endMin)
+        +": in dieser Zeit war TimeLog geöffnet. So siehst du, welche Lücken echte Pausen sind und was du noch nachtragen kannst.");
+      b.title="Aktivitätsspur · "+minLabel(run.startMin)+"–"+minLabel(run.endMin)
+        +"\nIn dieser Zeit war TimeLog geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät.";
       col.appendChild(b);
     });
 
@@ -979,6 +987,7 @@ function beatRuns(day){
   return runs;
 }
 function minOfDay(d){ return d.getHours()*60+d.getMinutes(); }
+function minLabel(m){ const z=n=>String(n).padStart(2,"0"); return z(Math.floor(m/60)%24)+":"+z(m%60); }
 function blockDurMin(b){ return (new Date(b.end)-new Date(b.start))/60000; }
 function fmtDur(min){ const h=Math.floor(min/60),m=min%60; return h?(h+"h"+(m?" "+m+"m":"")):(m+"m"); }
 function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
