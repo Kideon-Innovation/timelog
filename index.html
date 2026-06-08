@@ -206,6 +206,9 @@
   .nudge .nudge-x{flex:0 0 auto;width:28px;height:28px;border:0;border-radius:7px;cursor:pointer;
     background:transparent;color:var(--text-faint);font-size:18px;line-height:1;transition:.13s}
   .nudge .nudge-x:hover{background:var(--bg-sunken);color:var(--text)}
+  /* export-reminder variant — same bar, warmer copper wash so it reads as "save your data" */
+  .nudge.nudge-export{background:linear-gradient(180deg,var(--accent-soft),transparent)}
+  .nudge.nudge-export .nudge-txt b{color:var(--text);font-weight:600}
   @media (max-width:760px){
     .nudge{padding:9px 14px;gap:9px;flex-wrap:wrap}
     .nudge .nudge-txt{flex:1 1 100%;order:2;font-size:12.5px}
@@ -591,6 +594,14 @@
     <button class="nudge-x" id="nudgeDismiss" title="Ausblenden" aria-label="Hinweis ausblenden">×</button>
   </div>
 
+  <!-- Excel-export reminder: protects against data loss if the user forgets to export. -->
+  <div class="nudge nudge-export" id="exportNudge" role="status" aria-live="polite" hidden>
+    <span class="nudge-ic" aria-hidden="true">💾</span>
+    <span class="nudge-txt" id="exportNudgeTxt"></span>
+    <button class="btn amber nudge-act" id="exportNudgeGo">↓ Jetzt sichern</button>
+    <button class="nudge-x" id="exportNudgeDismiss" title="Ausblenden" aria-label="Hinweis ausblenden">×</button>
+  </div>
+
   <div class="subbar">
     <button class="btn icon" id="prevBtn" title="Zurück">◀</button>
     <button class="btn" id="todayBtn">Heute</button>
@@ -712,9 +723,9 @@ function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
     if(s && s.blocks) return Object.assign({blocks:[],recentLabels:[],settings:{}}, s,
-      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,theme:"light"}, s.settings||{})});
+      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}, s.settings||{})});
   }catch(e){}
-  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,theme:"light"}};
+  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}};
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -1267,6 +1278,7 @@ function doExport(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"TimeLog");
   const tag=(rows[0].start.slice(0,10))+"_bis_"+(rows[rows.length-1].start.slice(0,10));
   XLSX.writeFile(wb,"timelog_"+tag+".xlsx");
+  markExported();
   close("exportScrim"); toast("Exportiert: "+rows.length+" Blöcke");
 }
 
@@ -1340,6 +1352,7 @@ function onBoundary(){
     notify(gaps.length);
     openPing(true);
   }
+  refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
 }
 function tickClock(){ renderHeaderClock(); updateCountdown(); updateNowLine(); }
@@ -1385,6 +1398,75 @@ function notify(n){
     tag:"timelog-ping",renotify:true}); }catch(e){}
 }
 
+/* ============================================================
+   EXCEL-EXPORT REMINDER
+   Nothing is backed up to a server — if the user forgets to export and the
+   browser data gets wiped, everything is gone. So we nudge them to export.
+
+   Anchor for "days since last export":
+     - last successful export timestamp (timelog.lastExport.v1), if any;
+     - else the start of the OLDEST logged block (their oldest unsaved data),
+       so a brand-new user with no data is never nagged, and we only nag once
+       there is actually data older than the threshold that has never been saved.
+   Overdue = more than EXPORT_REMINDER_DAYS days since that anchor.
+   ============================================================ */
+const LAST_EXPORT_KEY = "timelog.lastExport.v1";
+const EXPORT_REMINDER_DAYS = 3;
+
+function markExported(){ try{ localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString()); }catch(e){} refreshExportReminder(); }
+function lastExportTime(){
+  try{ const v=localStorage.getItem(LAST_EXPORT_KEY); if(v){ const t=new Date(v).getTime(); if(!isNaN(t)) return t; } }catch(e){}
+  return null;
+}
+function oldestBlockTime(){
+  let min=null;
+  for(const b of state.blocks){ const t=new Date(b.start).getTime();
+    if(!isNaN(t) && (min===null || t<min)) min=t; }
+  return min;
+}
+/* central calc: whole days since the export anchor, or null when there is
+   simply nothing to protect (no export ever AND no data). */
+function daysSinceExport(){
+  const anchorT = lastExportTime() ?? oldestBlockTime();
+  if(anchorT===null) return null;
+  return Math.floor((Date.now()-anchorT)/86400000);
+}
+function exportOverdue(){
+  const d=daysSinceExport();
+  return d!==null && d>EXPORT_REMINDER_DAYS;
+}
+function todayKey(){ return iso(startOfDay(new Date())).slice(0,10); }
+
+/* In-app nudge: at most once per day, dismissible, re-appears next day if still
+   overdue. Notification fires once per day too (same day-gate), best-effort. */
+function refreshExportReminder(){
+  const show = exportOverdue()
+            && state.settings.exportReminderDay !== todayKey()
+            && !$("intro").classList.contains("show");
+  $("exportNudge").hidden = !show;
+  if(show){
+    const d=daysSinceExport();
+    $("exportNudgeTxt").innerHTML =
+      "Seit <b>"+d+" Tagen</b> kein Excel-Export — lad deine Daten als Excel runter, "
+      + "damit nichts verloren geht. Sie liegen nur auf diesem Gerät.";
+    notifyExportOverdue(d);
+  }
+}
+function notifyExportOverdue(days){
+  if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
+  // gate to once per day via the same dismiss-day mechanism is too aggressive
+  // (dismiss would also kill the banner); use a dedicated per-day notify flag.
+  if(state.settings.exportNotifyDay===todayKey()) return;
+  try{
+    new Notification("TimeLog — Daten sichern",{
+      body:"Seit "+days+" Tagen kein Excel-Export. Lad deine Daten runter, damit nichts verloren geht.",
+      tag:"timelog-export", renotify:false });
+    state.settings.exportNotifyDay=todayKey(); save();
+  }catch(e){}
+}
+$("exportNudgeDismiss").onclick=()=>{ state.settings.exportReminderDay=todayKey(); save(); refreshExportReminder(); };
+$("exportNudgeGo").onclick=()=>{ updateExpCount(); $("exportScrim").classList.add("show"); };
+
 /* ---------- toast ---------- */
 let toastT=null;
 function toast(m){ const t=$("toast"); t.textContent=m; t.onclick=null; t.style.cursor=""; t.classList.add("show");
@@ -1420,7 +1502,7 @@ $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.
 /* first-run intro */
 function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; }
 function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true"); }
-function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); }
+function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); refreshExportReminder(); }
 $("introStart").onclick=dismissIntro;
 $("introInstall").onclick=()=>$("installBtn").click();   // reuse existing install flow (prompt / iOS help)
 $("aboutBtn").onclick=()=>showIntro();
@@ -1588,7 +1670,7 @@ document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("mousedown",e=
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ document.querySelectorAll(".scrim.show").forEach(s=>s.classList.remove("show")); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
 
 // returning to tab → catch up
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
 window.addEventListener("focus",recordBeat);
 
 /* heartbeat: stamp the current slot while the tab is visible.
@@ -1608,6 +1690,7 @@ function boot(){
   $("soundBtn").textContent=state.settings.soundOn?"🔇 Ton ausschalten":"🔊 Ton anschalten";
   $("soundBtn").classList.toggle("ghost",!state.settings.soundOn);
   refreshNotifyBtn();
+  refreshExportReminder();            // remind to export if overdue (once/day)
   recordBeat();                       // mark this slot alive on load
   render();
   scrollToNow();
