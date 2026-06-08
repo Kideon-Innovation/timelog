@@ -195,7 +195,7 @@
       <span class="big mono" id="clock">--:--</span>
       <span class="sub" id="clockDate">—</span>
     </div>
-    <div class="countdown" title="Nächster Ping">
+    <div class="countdown" title="Zeit bis zur nächsten Erinnerung (Ping)">
       <div class="ring">
         <svg width="38" height="38"><circle cx="19" cy="19" r="16" fill="none" stroke="#2c261e" stroke-width="4"/>
         <circle id="ringProg" cx="19" cy="19" r="16" fill="none" stroke="#f5a623" stroke-width="4"
@@ -203,8 +203,8 @@
         <span class="t mono" id="ringTxt">15</span>
       </div>
       <div class="meta">
+        <span class="cd-lbl">nächster Ping in</span>
         <b class="mono" id="cdTime">15:00</b>
-        <span>bis Ping</span>
       </div>
     </div>
     <div class="spacer"></div>
@@ -324,7 +324,7 @@
         </div>
       </details>
     </div>
-    <div class="modal-f">
+    <div class="modal-f" id="expFoot">
       <button class="btn ghost" id="expAll">Alles</button>
       <div class="spacer"></div>
       <button class="btn ghost" id="expCancel">Abbrechen</button>

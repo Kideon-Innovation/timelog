@@ -65,6 +65,21 @@ test('pinned modal footer stays visible with a long catch-up list', async ({ pag
   expect(footerScrolls.footerFlex).toBe('0');
 });
 
+test('overflow menu stays fully within the viewport on mobile', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'menu clipping only reproduces on the narrow viewport');
+  await seed(page);
+  await page.keyboard.press('Escape'); // close any auto modal
+  await page.click('#menuBtn');
+  const menu = page.locator('#menu');
+  await expect(menu).toBeVisible();
+  const box = await menu.boundingBox();
+  const vw = page.viewportSize().width;
+  expect(box).not.toBeNull();
+  // The whole menu (incl. its left edge with the "Blockgröße" row) must be on-screen.
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
+});
+
 test('empty today column shows onboarding guidance', async ({ page }) => {
   // seed with NO blocks so today is empty
   await page.goto('./');

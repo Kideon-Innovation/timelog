@@ -267,8 +267,13 @@ function renderCalendar(){
       el.style.top=(minOfDay(s)*PX_PER_MIN)+"px"; el.style.height=Math.max(11,mins*PX_PER_MIN-3)+"px";
       const range = seg.blocks.length>1 ? hhmm(s)+"–"+hhmm(e)+" · "+fmtDur(mins) : hhmm(s);
       el.innerHTML=`<div class="lbl">${esc(seg.label)}</div><div class="tm">${range}</div>`;
+      const a11y=seg.label+", "+hhmm(s)+" bis "+hhmm(e)+", "+fmtDur(mins);
       el.title=seg.label+"  ("+hhmm(s)+"–"+hhmm(e)+", "+fmtDur(mins)+")";
+      // Keyboard/SR users must reach the same edit action mouse users get.
+      el.tabIndex=0; el.setAttribute("role","button");
+      el.setAttribute("aria-label","Eintrag bearbeiten: "+a11y);
       el.onclick=()=>openEdit(seg);
+      el.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openEdit(seg); } };
       col.appendChild(el);
     });
 
@@ -933,8 +938,13 @@ $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.target.value=""; };
 
 /* first-run intro */
-function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; armIntroDemo(); }
-function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true"); }
+function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0;
+  // Mirror the modal pattern: pull the app out of the a11y tree + tab order so
+  // focus can't leak into the controls hidden behind the intro overlay.
+  const app=$("app"); app.setAttribute("aria-hidden","true"); try{ app.inert=true; }catch(e){}
+  armIntroDemo(); }
+function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true");
+  const app=$("app"); app.removeAttribute("aria-hidden"); try{ app.inert=false; }catch(e){} }
 
 /* Ping→Excel preview: loop the CSS animation only while it's actually
    on screen. Scoped to the scrolling .intro container; CSS already
@@ -1114,8 +1124,14 @@ window.addEventListener("focus",recordBeat);
 function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
 
 function scrollToNow(){
+  const wrap=$("calWrap");
+  // On an empty day the onboarding hint sits mid-column; scrolling to "now"
+  // would push it out of view. If a hint is showing, center it instead so a
+  // first-run / blank-day user actually sees the guidance.
+  const hint=wrap.querySelector(".empty-hint");
+  if(hint){ hint.scrollIntoView({block:"center",behavior:"smooth"}); return; }
   const y=minOfDay(new Date())*PX_PER_MIN - 200;
-  $("calWrap").scrollTo({top:Math.max(0,y),behavior:"smooth"});
+  wrap.scrollTo({top:Math.max(0,y),behavior:"smooth"});
 }
 
 /* ---------- boot ---------- */

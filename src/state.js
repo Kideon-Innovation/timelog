@@ -39,10 +39,21 @@ export const DOW = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 export const MON = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 /* ---------- persisted state (mutate fields, never reassign the binding) ---------- */
+// First-run theme default: honor the OS preference so dark-mode users don't get
+// flash-banged by a light UI on their very first visit. Only affects a FRESH
+// state with no stored settings — any persisted `theme` still wins on merge, so
+// returning users (incl. those who picked light) are never overridden.
+function defaultTheme() {
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) return 'dark';
+  } catch (e) { /* no matchMedia → fall through to light */ }
+  return 'light';
+}
+
 function defaultSettings(slotMin) {
   return {
     intervalMin: slotMin, soundOn: true, notifyOn: false, introSeen: false,
-    notifyNudgeDismissed: false, exportReminderDay: '', exportNotifyDay: '', theme: 'light',
+    notifyNudgeDismissed: false, exportReminderDay: '', exportNotifyDay: '', theme: defaultTheme(),
   };
 }
 

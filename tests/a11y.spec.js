@@ -120,6 +120,54 @@ test('interactive controls get a visible :focus-visible ring', async ({ page }) 
   expect(hasRing.ring).toBe(true);
 });
 
+test('logged calendar entries are keyboard-focusable buttons that open edit on Enter/Space', async ({ page }) => {
+  await seed(page);
+  await closeAnyModal(page);
+
+  const block = page.locator('#cal .block').first();
+  await expect(block).toBeVisible();
+
+  // It must expose itself as an actionable control to AT, not a mouse-only div.
+  await expect(block).toHaveAttribute('role', 'button');
+  await expect(block).toHaveAttribute('tabindex', '0');
+  await expect(block).toHaveAttribute('aria-label', /bearbeiten/i);
+
+  // Keyboard focus + Enter opens the same edit dialog the mouse click opens.
+  await block.focus();
+  await expect(block).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#editScrim .modal')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#editScrim .modal')).toBeHidden();
+
+  // Space works too (and must not scroll the page instead of activating).
+  await block.focus();
+  await page.keyboard.press(' ');
+  await expect(page.locator('#editScrim .modal')).toBeVisible();
+});
+
+test('intro overlay makes the app shell inert so focus cannot leak behind it', async ({ page }) => {
+  // Fresh first-run state: introSeen=false → intro shows on boot.
+  await page.goto('./');
+  await page.evaluate(() => localStorage.setItem('timelog.v1', JSON.stringify({
+    blocks: [], recentLabels: [],
+    settings: { theme: 'light', introSeen: false, soundOn: true, notifyOn: false, intervalMin: 15 },
+  })));
+  await page.reload();
+  await expect(page.locator('#intro.show')).toBeVisible();
+
+  await expect(page.locator('#app')).toHaveAttribute('aria-hidden', 'true');
+  const inert = await page.locator('#app').evaluate((el) => el.inert === true);
+  expect(inert).toBe(true);
+
+  // Dismiss the intro via its CTA → shell becomes interactive again.
+  await page.locator('#introStart').click();
+  await expect(page.locator('#intro')).not.toHaveClass(/show/);
+  await expect(page.locator('#app')).not.toHaveAttribute('aria-hidden', 'true');
+  const inertAfter = await page.locator('#app').evaluate((el) => el.inert === true);
+  expect(inertAfter).toBe(false);
+});
+
 test('catch-up skip control is a real, keyboard-focusable button', async ({ page }) => {
   await seed(page);
   // ensure the catch-up modal is open (there are gap slots since blocks are in the morning)

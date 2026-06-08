@@ -7,8 +7,15 @@
     --line-soft:#eeedea;
     --text:#0f2137;
     --text-dim:#4d5f73;
-    --text-faint:#7a8a9a;
+    /* #7a8a9a was only 3.37:1 on light bg — fails AA for the 11-12px body text
+       that uses it (intro notes/foot, empty-sub, countdown meta). Darkened to
+       clear 4.5:1. Dark theme keeps its own value below. */
+    --text-faint:#5f7081;
     --accent:#c49a6c;
+    /* --accent (#c49a6c) on light bg is only 2.44:1 — fine for fills/borders,
+       fails WCAG AA (4.5:1) for TEXT. Use this darker copper for accent-colored
+       text so small uppercase labels / numbers stay legible. */
+    --accent-text:#8a6324;
     --accent-soft:rgba(196,154,108,.14);
     --on-accent:#0f2137;
     --now:#dc2626;
@@ -36,6 +43,8 @@
     --text-dim:#aebed0;
     --text-faint:#7a8ca0;
     --accent:#c49a6c;
+    /* Dark theme: copper on navy already clears AA, so accent text == accent. */
+    --accent-text:#c49a6c;
     --accent-soft:rgba(196,154,108,.18);
     --on-accent:#0f2137;
     --now:#ff6b6b;
@@ -122,10 +131,14 @@
   .countdown .ring{position:relative;width:38px;height:38px;flex:0 0 38px}
   .countdown .ring svg{transform:rotate(-90deg)}
   .countdown .ring .t{position:absolute;inset:0;display:grid;place-items:center;
-    font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--accent)}
-  .countdown .meta{display:flex;flex-direction:column}
-  .countdown .meta b{font-family:'JetBrains Mono';font-size:15px}
-  .countdown .meta span{font-size:10.5px;color:var(--text-faint);letter-spacing:.04em;text-transform:uppercase}
+    font-family:'JetBrains Mono';font-size:10px;font-weight:700;color:var(--accent-text)}
+  /* Label sits ABOVE the number so the countdown reads as "nächster Ping in
+     14:23" rather than as a time range next to the wall clock. The number is
+     dimmed + lighter-weight so it clearly de-emphasises against the big clock. */
+  .countdown .meta{display:flex;flex-direction:column;line-height:1.15}
+  .countdown .meta .cd-lbl{font-size:9.5px;color:var(--text-faint);letter-spacing:.05em;
+    text-transform:uppercase}
+  .countdown .meta b{font-family:'JetBrains Mono';font-size:14px;font-weight:500;color:var(--text-dim)}
 
   .spacer{flex:1}
 
@@ -202,10 +215,12 @@
   .nudge.nudge-export{background:linear-gradient(180deg,var(--accent-soft),transparent)}
   .nudge.nudge-export .nudge-txt b{color:var(--text);font-weight:600}
   @media (max-width:760px){
-    .nudge{padding:9px 14px;gap:9px;flex-wrap:wrap}
-    .nudge .nudge-txt{flex:1 1 100%;order:2;font-size:12.5px}
+    /* Tighter on mobile so the bar doesn't eat a chunk of the (already short)
+       calendar viewport: less padding, smaller copy + gap, compact button. */
+    .nudge{padding:7px 14px;gap:7px;flex-wrap:wrap;font-size:12px;line-height:1.35}
+    .nudge .nudge-txt{flex:1 1 100%;order:2;font-size:11.5px;margin-top:2px}
     .nudge .nudge-ic{order:1}
-    .nudge .nudge-act{order:1;margin-left:auto}
+    .nudge .nudge-act{order:1;margin-left:auto;height:28px;padding:0 12px;font-size:12px}
     .nudge .nudge-x{order:1}
   }
 
@@ -306,7 +321,7 @@
   .modal-b::-webkit-scrollbar{width:10px}
   .modal-b::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:3px solid var(--bg)}
   .modal-h{padding:22px 24px 8px;flex:0 0 auto}
-  .modal-h .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .modal-h .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
   .modal-h h2{font-family:'Instrument Serif';font-weight:400;font-size:27px;margin-top:3px}
   .modal-h p{color:var(--text-dim);font-size:13px;margin-top:4px}
   .modal-b{padding:8px 24px 4px;overflow-y:auto;flex:1 1 auto;min-height:0}
@@ -381,10 +396,19 @@
     .clock .big{font-size:18px}
     .clock .sub{font-size:10px}
     .countdown{min-width:0;padding:6px 10px;gap:9px}
-    .countdown .meta span{display:none}
+    .countdown .meta .cd-lbl{display:none}
     .spacer{display:none}
     .controls{gap:6px;flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start;
       padding-top:10px;border-top:1px solid var(--line-soft)}
+    /* The menu is absolutely positioned right:0 of its (full-width-wrapped)
+       menu-wrap, so on a narrow screen its 216px box overflows the viewport's
+       left edge ("Blockgröße" gets clipped). Re-anchor it to the HEADER's right
+       edge (header becomes the positioning context) and clamp its width so it
+       always stays fully on-screen, regardless of where the ☰ button wrapped. */
+    header{position:relative}
+    .menu-wrap{position:static}
+    .menu{position:absolute;top:calc(100% - 6px);right:14px;left:auto;
+      max-width:calc(100vw - 28px);min-width:0;width:216px}
     button.btn{padding:9px 12px;font-size:13px}
     button.icon{width:38px;height:38px}
     .subbar{gap:8px;padding:9px 14px;flex-wrap:wrap}
@@ -398,6 +422,16 @@
     .modal{width:100%;max-width:100%;max-height:92dvh;border-radius:20px 20px 0 0;
       border-left:0;border-right:0;border-bottom:0;animation:sheet .26s cubic-bezier(.2,.85,.25,1)}
     .modal-f{padding-bottom:max(22px,env(safe-area-inset-bottom))}
+    /* Export footer has 4 actions; at ~390px they wrap into an ugly ragged row.
+       Stack them: primary .xlsx full-width on top, the two export/cancel ghosts
+       as a 2-col row below, "Alles" (select-all range) last. */
+    #expFoot{display:flex;flex-direction:column;gap:10px}
+    #expFoot .spacer{display:none}
+    #expFoot .btn{width:100%;justify-content:center}
+    #expFoot #expGo{order:1}
+    #expFoot #expDatev{order:2}
+    #expFoot #expCancel{order:3}
+    #expFoot #expAll{order:4;opacity:.85}
     .row{flex-direction:column;gap:8px}
   }
   @keyframes sheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -417,7 +451,7 @@
   .intro-wrap{max-width:600px;margin:0 auto;padding:40px 24px 64px;text-align:center}
   /* on wide screens the pitch may use a content column up to ~1180px */
   @media (min-width:900px){ .intro-wrap{max-width:1180px;padding:56px 48px 80px} }
-  .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px}
+  .intro-kick{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text);font-weight:600;margin-bottom:14px}
   .intro h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(2.1rem,7vw,3.1rem);line-height:1.08;letter-spacing:.3px;margin-bottom:16px}
   .intro h1 em{font-style:italic;color:var(--accent)}
   .intro .lead{font-size:15.5px;line-height:1.65;color:var(--text-dim);max-width:480px;margin:0 auto}
@@ -446,7 +480,7 @@
 
   /* ===== shared section scaffolding ===== */
   .intro-section{margin-top:64px;scroll-margin-top:24px}
-  .section-kick{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+  .section-kick{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);
     font-weight:600;text-align:center;margin-bottom:10px}
   .section-title{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(1.5rem,4.5vw,2rem);
     line-height:1.15;text-align:center;color:var(--text);margin-bottom:26px}
@@ -512,14 +546,18 @@
   .demo-new{opacity:1}
 
   /* the ping notification toast */
-  .demo-ping{position:absolute;top:42px;left:50%;transform:translateX(-50%);width:84%;z-index:6;
+  /* The prompt is the dialog that opens when the empty 13:00 slot (top:250px)
+     is clicked, so it must float NEXT TO that slot — not at the top over the
+     10:00 entry. Anchor it just above the 13:00 block (cursor clicks at ~268px)
+     so the prompt visibly belongs to the slot being logged. */
+  .demo-ping{position:absolute;top:160px;left:50%;transform:translateX(-50%);width:84%;z-index:6;
     background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--accent);
     border-radius:12px;box-shadow:var(--shadow);padding:11px 13px;text-align:left}
-  .demo-ping .pk{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  .demo-ping .pk{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);
     font-weight:700;margin-bottom:3px}
   .demo-ping .pq{font-family:'Instrument Serif';font-size:15px;line-height:1.15}
   .demo-ping .pf{display:inline-flex;align-items:center;gap:7px;margin-top:9px;
-    border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);
+    border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-text);
     border-radius:999px;padding:4px 11px;font-size:11px;font-weight:600}
 
   /* fake cursor */
