@@ -886,6 +886,11 @@ function beat(){
 
 /* gaps: unfilled past slots within CATCHUP_CAP_MS, oldest-first */
 function gapSlots(){
+  // Erstnutzer ohne jegliche Tracking-Historie haben keine echte Lücke zum
+  // Nachtragen — der Backfill-Dialog soll erst erscheinen, sobald schon mind.
+  // ein Eintrag existiert. Ohne diesen Guard würde der gesamte 2h-Zeitraum als
+  // Lücke gewertet und ein Neunutzer mit dem Catchup-Dialog konfrontiert.
+  if(!state.blocks.length) return [];
   const now=new Date(), out=[];
   let s=floorSlot(new Date(now.getTime()-CATCHUP_CAP_MS));
   const liveEnd=floorSlot(now);   // current (ongoing) slot start = not yet ended
