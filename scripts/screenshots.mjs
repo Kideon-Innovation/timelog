@@ -73,7 +73,7 @@ async function newCtx(opts){
   return { ctx, page };
 }
 
-const shot = (page,name) => page.screenshot({ path: resolve(root,'screenshots',name) });
+const shot = (page,name) => page.screenshot({ path: resolve(root,'public','screenshots',name) });
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
 /* ---------- desktop ---------- */

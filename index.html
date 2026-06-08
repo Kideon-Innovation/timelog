@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TimeLog — Zeiterfassung für Kanzleien</title>
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest">
+<!-- PWA — manifest <link> is injected by vite-plugin-pwa at build time -->
 <meta name="theme-color" content="#faf9f7" id="metaTheme">
+<!-- Registers the Workbox SW (offline) + auto-reloads on a new deploy. See src/pwa.js. -->
+<script type="module" src="/src/pwa.js"></script>
 <meta name="color-scheme" content="dark light">
 <meta name="application-name" content="TimeLog">
 <meta name="description" content="Zeiterfassung für Kanzleien — TimeLog fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel automatisch auf. Was du einträgst, verlässt nie den Computer: kein Server, kein Konto. Gemacht für Berufsgeheimnisträger — die Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt. Läuft offline, Export als Excel.">
@@ -16,15 +17,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TimeLog">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<!-- icons live in public/ (served verbatim); absolute paths so Vite applies the base prefix -->
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="vendor/xlsx.full.min.js"></script>
+<!-- xlsx is a vendored UMD global (window.XLSX); served verbatim from public/, not bundled -->
+<script src="/vendor/xlsx.full.min.js"></script>
 <style>
   /* Kideon light theme — default. Off-White / Navy / Copper. */
   :root{
@@ -1738,29 +1741,12 @@ window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout
   const c=colsForViewport(); if(c!==DAY_COLS){ DAY_COLS=c; render(); }
 },150); });
 
-// service worker: offline + update prompt
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("sw.js").then(reg=>{
-      reg.addEventListener("updatefound",()=>{
-        const nw=reg.installing; if(!nw) return;
-        nw.addEventListener("statechange",()=>{
-          if(nw.state==="installed" && navigator.serviceWorker.controller) showUpdateToast(reg);
-        });
-      });
-    }).catch(()=>{});
-    let refreshing=false;
-    navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(refreshing) return; refreshing=true; location.reload();
-    });
-  });
-}
-function showUpdateToast(reg){
-  const t=$("toast"); t.textContent="Neue Version verfügbar — tippen zum Aktualisieren";
-  t.style.cursor="pointer"; t.classList.add("show");
-  t.onclick=()=>{ if(reg.waiting) reg.waiting.postMessage("skipWaiting"); t.classList.remove("show"); };
-  clearTimeout(toastT); toastT=setTimeout(()=>{ t.classList.remove("show"); t.onclick=null; t.style.cursor=""; },9000);
-}
+/* Service worker: offline app shell + auto-update.
+   The Workbox SW is generated and registered by vite-plugin-pwa
+   (registerType:'autoUpdate', injectRegister:'auto'). On a new deploy the
+   fresh SW installs, skipWaiting + clientsClaim take control immediately and
+   the page reloads to the new version — no manual hard-refresh. The old
+   hand-written sw.js + manual registration were removed in favor of this. */
 
 function applyTheme(){
   const dark=state.settings.theme==="dark";

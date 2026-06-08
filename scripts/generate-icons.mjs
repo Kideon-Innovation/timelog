@@ -17,17 +17,17 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const svg = readFileSync(resolve(root, 'icons/icon.svg'), 'utf8');
-const svgMask = readFileSync(resolve(root, 'icons/icon-maskable.svg'), 'utf8');
+const svg = readFileSync(resolve(root, 'public/icons/icon.svg'), 'utf8');
+const svgMask = readFileSync(resolve(root, 'public/icons/icon-maskable.svg'), 'utf8');
 
 const jobs = [
-  { svg, size: 192, out: 'icons/icon-192.png' },
-  { svg, size: 512, out: 'icons/icon-512.png' },
-  { svg, size: 180, out: 'icons/apple-touch-icon.png' },
-  { svg, size: 32,  out: 'icons/favicon-32.png' },
-  { svg, size: 16,  out: 'icons/favicon-16.png' },
-  { svg: svgMask, size: 512, out: 'icons/icon-maskable-512.png' },
-  { svg: svgMask, size: 192, out: 'icons/icon-maskable-192.png' },
+  { svg, size: 192, out: 'public/icons/icon-192.png' },
+  { svg, size: 512, out: 'public/icons/icon-512.png' },
+  { svg, size: 180, out: 'public/icons/apple-touch-icon.png' },
+  { svg, size: 32,  out: 'public/icons/favicon-32.png' },
+  { svg, size: 16,  out: 'public/icons/favicon-16.png' },
+  { svg: svgMask, size: 512, out: 'public/icons/icon-maskable-512.png' },
+  { svg: svgMask, size: 192, out: 'public/icons/icon-maskable-192.png' },
 ];
 
 const browser = await chromium.launch();
