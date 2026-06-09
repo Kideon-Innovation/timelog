@@ -265,8 +265,12 @@
   html[data-theme="dark"] .beat{opacity:.5}
   /* invisible hover/focus target so the 3px rail is comfortably hoverable for its tooltip */
   .beat::after{content:"";position:absolute;top:0;bottom:0;left:-2px;width:14px}
-  .beat:hover{opacity:.85}
-  .beat:focus-visible{outline:2px solid var(--accent);outline-offset:1px;opacity:.85}
+  /* On hover/focus, lift the whole beat above blocks + now-line — .beat is its own
+     stacking context (z-index:1), so the tooltip's z-index:60 only ranks within it;
+     without this the card paints behind blocks (z-index:2/4) and text bleeds through. */
+  .beat:hover{opacity:.85;z-index:61}
+  .beat:focus-visible{outline:2px solid var(--accent);outline-offset:1px;opacity:.85;z-index:61}
+  .beat:focus-within{z-index:61}
 
   /* custom instant tooltip (replaces native title's ~1s delay).
      Shown the instant the pointer/focus is on the rail — no JS, no show-delay. */
