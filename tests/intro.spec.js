@@ -44,6 +44,11 @@ test.describe('intro / landing', () => {
     await expect(page.locator('#intro')).not.toHaveClass(/show/);
   });
 
+  test('comparison section is framed as "better than other tools"', async ({ page }) => {
+    await freshIntro(page);
+    await expect(page.locator('.intro-counter .section-title')).toHaveText('Warum besser als andere Tools?');
+  });
+
   test('focus section pitches the attention/Pomodoro benefit', async ({ page }) => {
     await freshIntro(page);
     const focus = page.locator('.intro-focus');
