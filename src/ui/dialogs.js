@@ -217,10 +217,13 @@ export function openEdit(seg){
       const range="("+hhmm(bs)+"–"+hhmm(be)+")";
       const x=document.createElement("button"); x.type="button"; x.className="skip";
       // Reversible clear: toggle the block between active and "wird gelöscht".
-      let stash="";
+      // stash is null until something is actually cleared, so the initial
+      // setCleared(false) only sets up the UI and leaves ri.value (the existing
+      // label) untouched — clobbering it with "" was the prefill/data-loss bug.
+      let stash=null;
       const setCleared=on=>{
         if(on){ stash=ri.value; ri.value=""; ri.placeholder="wird gelöscht"; }
-        else { ri.value=stash; stash=""; ri.placeholder=""; }
+        else { if(stash!==null) ri.value=stash; stash=null; ri.placeholder=""; }
         row.classList.toggle("done",on);
         ri.disabled=on;
         x.textContent=on?"↩":"✕";

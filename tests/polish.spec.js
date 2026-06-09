@@ -63,6 +63,23 @@ test('legend chips truncate instead of wrapping and keep the full label on title
   expect(css.clipped).toBe(true);
 });
 
+test('editing a multi-slot block pre-fills per-slot inputs and keeps data on save', async ({ page }) => {
+  await seed(page);
+  await closeModal(page);
+  // The 9:00 + 9:15 same-label blocks merge into one segment; clicking it edits both.
+  await page.locator('#cal .block').first().click();
+  await expect(page.locator('#editScrim .modal')).toBeVisible();
+  const rows = page.locator('#editSlots .gaprow input');
+  await expect(rows).toHaveCount(2);
+  // Each per-slot row must be pre-filled with its existing label, not blank.
+  await expect(rows.nth(0)).toHaveValue(LONG);
+  await expect(rows.nth(1)).toHaveValue(LONG);
+  // Saving untouched must NOT wipe the blocks.
+  await page.locator('#editSave').click();
+  await expect(page.locator('#editScrim .modal')).toBeHidden();
+  await expect(page.locator('#cal .block').filter({ hasText: LONG })).toHaveCount(1);
+});
+
 test('recent-label chips in edit dialog stay one line and never overflow the modal', async ({ page }) => {
   await seed(page);
   await closeModal(page);
