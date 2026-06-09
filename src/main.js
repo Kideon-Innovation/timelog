@@ -268,9 +268,19 @@ function applyImport(rows){
     const d=parseDE(r[ci.date]), s=parseHM(r[ci.start]), e=parseHM(r[ci.end]);
     const label=String(r[ci.label]||"").trim();
     if(!d||!s||!e||!label){ bad++; continue; }
-    const start=new Date(d.y,d.m-1,d.d,s.h,s.min,0,0);
+    let start=new Date(d.y,d.m-1,d.d,s.h,s.min,0,0);
     let end=new Date(d.y,d.m-1,d.d,e.h,e.min,0,0);
     if(end.getTime()<=start.getTime()) end=new Date(end.getTime()+86400000); // 23:xx–00:00 = last slot of day
+    // Snap imported boundaries to the active slot grid so imports share the
+    // app's own data model (in-app entries are always slot-aligned). Floor the
+    // start, ceil the end: a row finer than one slot (e.g. a hand-crafted 3-min
+    // block, or boundaries off the grid) becomes a full, readable slot instead
+    // of a sub-slot sliver that hits the calendar's min-height clamp and smears
+    // over its neighbour. Already-aligned rows (our own export) are unchanged:
+    // floor/ceil of an on-grid boundary is itself.
+    start=floorSlot(start);
+    end=nextBoundary(new Date(end.getTime()-1)); // ceil to slot grid (on-grid end stays put)
+    if(end.getTime()<=start.getTime()){ bad++; continue; } // zero-length after snap
     imported.push({start:iso(start),end:iso(end),label}); ok++;
   }
   if(!ok){ toast("Keine gültigen Zeilen gefunden"); return; }

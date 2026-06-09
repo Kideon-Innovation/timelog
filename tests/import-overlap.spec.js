@@ -96,3 +96,92 @@ test('coarse import over finer blocks replaces the full range — no overlaps, c
 
   expect(errors).toEqual([]);
 });
+
+// An imported xlsx can carry blocks FINER than the app's slot granularity (the
+// in-app minimum interval is 6 min). A hand-crafted row like 09:01–09:04 (3 min)
+// or boundaries that don't sit on the slot grid produced sub-slot blocks. Those
+// hit the min-height clamp in ui/calendar.js (Math.max(11, mins*PX-3)) so two
+// consecutive sub-slot blocks paint on top of each other as an unreadable
+// smear. applyImport() must SNAP imported boundaries to the active slot grid
+// (floor start / ceil end) so imported blocks share the in-app data model:
+// slot-aligned, non-overlapping, each tall enough to read.
+test('sub-slot import rows snap to the slot grid — no sub-6-min smear, no overlap', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  // Empty store, slot size = 6 min (the app minimum).
+  await page.addInitScript(() => localStorage.setItem('timelog.v1', JSON.stringify({
+    blocks: [], recentLabels: [],
+    settings: { intervalMin: 6, soundOn: false, notifyOn: false, introSeen: true,
+      notifyNudgeDismissed: true, exportReminderDay: '', exportNotifyDay: '', theme: 'light' },
+  })));
+  await page.goto('/');
+
+  // Two sub-slot rows whose boundaries are off the 6-min grid:
+  //   09:01–09:04 (3 min)  -> snaps to 09:00–09:06
+  //   09:10–09:13 (3 min)  -> snaps to 09:06–09:18
+  const b64 = await page.evaluate(() => {
+    const X = window.XLSX;
+    const aoa = [
+      ['Datum', 'Wochentag', 'Start', 'Ende', 'Dauer (min)', 'Tätigkeit'],
+      ['02.06.2026', 'Di', '09:01', '09:04', 3, 'Fein-Import A'],
+      ['02.06.2026', 'Di', '09:10', '09:13', 3, 'Fein-Import B'],
+    ];
+    const ws = X.utils.aoa_to_sheet(aoa);
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, 'TimeLog');
+    const buf = X.write(wb, { type: 'array', bookType: 'xlsx' });
+    let bin = '';
+    const arr = new Uint8Array(buf);
+    for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+    return btoa(bin);
+  });
+
+  const dir = mkdtempSync(join(tmpdir(), 'xlsx-'));
+  const file = join(dir, 'subslot.xlsx');
+  writeFileSync(file, Buffer.from(b64, 'base64'));
+
+  await page.setInputFiles('#importFile', file);
+  await expect(page.locator('#toast')).toContainText('Importiert: 2');
+
+  const blocks = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('timelog.v1')).blocks
+      .map((b) => ({ start: b.start, end: b.end, label: b.label }))
+      .sort((a, b) => a.start.localeCompare(b.start)));
+
+  // Every stored boundary sits on the 6-min grid (minutes divisible by 6, secs 0).
+  for (const b of blocks) {
+    for (const t of [b.start, b.end]) {
+      const m = new Date(t).getMinutes();
+      expect(m % 6, `${t} must be on the 6-min slot grid`).toBe(0);
+      expect(new Date(t).getSeconds()).toBe(0);
+    }
+    // No block is shorter than one slot (sub-slot smear is impossible).
+    expect((new Date(b.end) - new Date(b.start)) / 60000).toBeGreaterThanOrEqual(6);
+  }
+
+  // Exact snapped result: floor(start) / ceil(end) to the 6-min grid.
+  expect(blocks).toEqual([
+    { start: '2026-06-02T09:00:00', end: '2026-06-02T09:06:00', label: 'Fein-Import A' },
+    { start: '2026-06-02T09:06:00', end: '2026-06-02T09:18:00', label: 'Fein-Import B' },
+  ]);
+
+  // No overlap (open intervals).
+  expect(hasOverlap(blocks)).toBe(false);
+
+  // And they render readably: each .block is at least the clamp height and no
+  // two blocks share the same top (the smear symptom).
+  await page.evaluate(() => {
+    const dp = document.getElementById('datePick');
+    dp.value = '2026-06-02';
+    dp.dispatchEvent(new Event('change'));
+  });
+  const rects = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.block')).map((el) => ({
+      top: el.style.top, height: parseFloat(el.style.height),
+    })));
+  expect(rects.length).toBe(2);
+  expect(new Set(rects.map((r) => r.top)).size, 'blocks must not stack at the same top').toBe(2);
+
+  expect(errors).toEqual([]);
+});
