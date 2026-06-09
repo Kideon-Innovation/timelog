@@ -13,15 +13,13 @@
 //
 // SHARING CONTRACT (how this stays decoupled and cycle-free):
 //   * It imports state/config from state.js, block helpers from blocks.js, pure
-//     date helpers from time.js, the `$` shorthand from ui/dom.js, and the
-//     calendar's `render` from ui/calendar.js — the same one-directional layering
-//     the rest of src/ already uses. calendar.js never imports dialogs.js, so
-//     importing render here introduces NO cycle.
-//   * `toast` is the only main.js-owned primitive these dialogs need (a thin
-//     notify helper that is slated to move into its own module next). It is
-//     INJECTED once at boot via initDialogs({ toast }) rather than imported, so
-//     dialogs.js does not depend back on main.js. Misuse is hard: forgetting to
-//     call initDialogs throws a clear error the first time a dialog would toast.
+//     date helpers from time.js, the `$` shorthand from ui/dom.js, `toast` from
+//     ui/notify.js, and the calendar's `render` from ui/calendar.js — the same
+//     one-directional layering the rest of src/ already uses. calendar.js and
+//     notify.js never import dialogs.js, so these imports introduce NO cycle.
+//   * `toast` (the in-app snackbar a few dialogs fire on commit) now lives in
+//     ui/notify.js and is imported directly — the earlier initDialogs({ toast })
+//     DI shim is retired now that the primitive has its own low-level module.
 //   * main.js imports openScrim/closeScrim/close (export, install help, intro and
 //     nudge flows still drive scrims), openLogNow/openPing (timer + manual log),
 //     openRangeEntry (drag-to-select commit), and openEdit (injected into the
@@ -35,19 +33,12 @@ import {
   colorFor, setBlock, blocksInRange, fillRange, lastLabel, gapSlots,
 } from '../blocks.js';
 import { $ } from './dom.js';
+import { toast } from './notify.js';
 import { render } from './calendar.js';
 
 // Same thin wrapper main.js / calendar.js use: supply the active block size to
 // the pure, parameterised time.js implementation so callers keep the 1-arg form.
 const floorSlot = (d) => floorSlotMin(d, getSlotMin());
-
-// Injected main.js-owned notify primitive (see SHARING CONTRACT). Set by initDialogs.
-let toast = () => { throw new Error('dialogs.js: initDialogs({toast}) was not called'); };
-
-/** Wire the main.js-owned helpers the dialogs need. Call once at boot. */
-export function initDialogs({ toast: toastFn }) {
-  toast = toastFn;
-}
 
 /* ============================================================
    PING / CATCH-UP

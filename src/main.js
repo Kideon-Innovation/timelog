@@ -23,12 +23,12 @@ import {
   beat, gapSlots,
 } from './blocks.js';
 import { $ } from './ui/dom.js';
+import { toast, notify, beep } from './ui/notify.js';
 import {
   initCalendar, render, renderHeaderClock,
   updateNowLine, updateCountdown, scrollToNow,
 } from './ui/calendar.js';
 import {
-  initDialogs,
   openScrim, closeScrim, close, openScrims,
   openEdit, openLogNow, openPing, openRangeEntry,
 } from './ui/dialogs.js';
@@ -56,9 +56,10 @@ const nextBoundary = (d) => nextBoundaryMin(d, getSlotMin());
 /* ============================================================
    PING / CATCH-UP, RANGE-ENTRY and EDIT dialogs + the scrim/modal a11y
    machinery (focus-trap, inert background, focus-restore) now live in
-   src/ui/dialogs.js. They are imported above; main.js still owns drag
-   (which commits via the imported openRangeEntry) and injects toast into the
-   dialog layer once at boot via initDialogs.
+   src/ui/dialogs.js, and the toast/notify/beep feedback primitives in
+   src/ui/notify.js. Both are imported above; dialogs.js pulls `toast` from
+   notify.js directly (the old initDialogs DI shim is gone). main.js still owns
+   drag (which commits via the imported openRangeEntry).
    ============================================================ */
 
 /* ---------- drag-to-select (Pointer Events: mouse drag, touch long-press) ----------
@@ -321,32 +322,6 @@ function onBoundary(){
 // (renderHeaderClock / updateCountdown / updateNowLine) live in ui/calendar.js.
 function tickClock(){ renderHeaderClock(); updateCountdown(); updateNowLine(); }
 
-/* ---------- sound ---------- */
-let actx=null;
-function beep(){
-  try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==="suspended") actx.resume();
-    const t=actx.currentTime;
-    [880,1320].forEach((f,i)=>{
-      const o=actx.createOscillator(),g=actx.createGain();
-      o.type="sine"; o.frequency.value=f;
-      o.connect(g); g.connect(actx.destination);
-      const s=t+i*0.18; g.gain.setValueAtTime(0,s);
-      g.gain.linearRampToValueAtTime(0.18,s+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,s+0.16);
-      o.start(s); o.stop(s+0.17);
-    });
-  }catch(e){}
-}
-
-/* ---------- notification ---------- */
-function notify(n){
-  if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
-  try{ new Notification("TimeLog — Ping",{body:n>1?(n+" Einträge nachzutragen"):"Woran arbeitest du gerade?",
-    tag:"timelog-ping",renotify:true}); }catch(e){}
-}
-
 /* ============================================================
    EXCEL-EXPORT REMINDER
    Nothing is backed up to a server — if the user forgets to export and the
@@ -421,11 +396,6 @@ function notifyExportOverdue(days){
 }
 $("exportNudgeDismiss").onclick=()=>{ state.settings.exportReminderDay=todayKey(); save(); refreshExportReminder(); };
 $("exportNudgeGo").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
-
-/* ---------- toast ---------- */
-let toastT=null;
-function toast(m){ const t=$("toast"); t.textContent=m; t.onclick=null; t.style.cursor=""; t.classList.add("show");
-  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2400); }
 
 /* ============================================================
    WIRING
@@ -650,11 +620,9 @@ function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
 
 /* ---------- boot ---------- */
 function boot(){
-  // Inject main.js's toast primitive into the dialog layer (it lives here until
-  // notify.js is extracted) so dialogs can surface their confirmations.
-  initDialogs({ toast });
   // Hand the calendar renderer the two event/modal behaviours it needs: opening
-  // the edit dialog (now in dialogs.js) and attaching drag-to-select (still here).
+  // the edit dialog (now in dialogs.js) and attaching drag-to-select (now in
+  // drag.js, imported above and passed through).
   initCalendar({ openEdit, attachDrag });
   applyTheme();
   if(!state.settings.introSeen) showIntro();
