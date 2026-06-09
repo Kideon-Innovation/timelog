@@ -589,16 +589,18 @@
   /* Cursor uses PIXEL offsets so it lines up exactly with the pixel-
      positioned blocks (percentages drifted off as the cal height varies).
      Flow: click the EMPTY 13:00 slot (≈150px/268px) → prompt opens → move up
-     and confirm the suggested entry chip (≈118px/96px) → back to the filled
-     slot. Tip of the arrow ≈ element origin. */
+     to the suggested-entry chip INSIDE the prompt (≈120px/206px) and confirm
+     → back to the filled slot. Tip of the arrow ≈ element origin. The chip sits
+     at top≈203px (prompt at top:152px); the earlier 96px landed on the 10:00
+     "Mandant Berg" block instead — the cursor pointed at the wrong row. */
   @keyframes dCursor{
     0%,10%{opacity:0;left:150px;top:288px}
     16%{opacity:1;left:150px;top:268px}                       /* arrive over the empty 13:00 slot */
     22%{opacity:1;left:150px;top:268px;transform:scale(.82)}  /* click the slot → opens the prompt */
     27%{opacity:1;left:150px;top:268px;transform:scale(1)}
-    42%{opacity:1;left:118px;top:96px}                        /* move up to the suggested entry */
-    48%{opacity:1;left:118px;top:96px;transform:scale(.82)}   /* confirm */
-    52%{opacity:1;left:118px;top:96px;transform:scale(1)}
+    42%{opacity:1;left:120px;top:206px}                       /* move up to the suggested-entry chip */
+    48%{opacity:1;left:120px;top:206px;transform:scale(.82)}  /* confirm */
+    52%{opacity:1;left:120px;top:206px;transform:scale(1)}
     64%{opacity:1;left:150px;top:268px}                       /* back down to the now-filled slot */
     82%{opacity:1;left:150px;top:268px}
     92%,100%{opacity:0;left:150px;top:268px}
@@ -671,7 +673,9 @@
     .intro-kick{margin-bottom:16px}
     .hero-cta{flex-direction:row;align-items:center;gap:20px;margin-top:30px}
     .hero-cta .btn.amber{height:54px;padding:0 34px;font-size:16px}
-    .intro-cta-note{margin-left:0;text-align:left}
+    /* hero note tracks the left-aligned hero copy; the closing-CTA note keeps
+       the base centred alignment (it sits under a centred button row). */
+    .hero .intro-cta-note{margin-left:0;text-align:left}
     .trust{justify-content:flex-start;margin-left:0;max-width:none}
     .hero-demo{margin-top:0;justify-content:flex-end}
     .intro-demo{max-width:520px}
