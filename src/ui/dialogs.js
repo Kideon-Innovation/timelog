@@ -105,11 +105,13 @@ function openCatchup(gaps){
     const range="("+hhmm(slot)+"–"+hhmm(end)+")";
     const skip=document.createElement("button"); skip.type="button"; skip.className="skip";
     // Reversible skip: clicking toggles the row between active and "leer gelassen".
-    // Skipping remembers any text so it can be restored on undo.
-    let stash="";
+    // Skipping remembers any text so it can be restored on undo. stash starts
+    // null so the initial setSkipped(false) never clobbers a value — same safe
+    // pattern as openEdit's per-slot rows (see setCleared there).
+    let stash=null;
     const setSkipped=on=>{
       if(on){ stash=inp.value; inp.value=""; inp.placeholder="leer gelassen"; }
-      else { inp.value=stash; stash=""; inp.placeholder="Stichwort …"; }
+      else { if(stash!==null) inp.value=stash; stash=null; inp.placeholder="Stichwort …"; }
       row.classList.toggle("done",on);
       inp.disabled=on;
       skip.textContent=on?"↩":"✕";
@@ -217,10 +219,13 @@ export function openEdit(seg){
       const range="("+hhmm(bs)+"–"+hhmm(be)+")";
       const x=document.createElement("button"); x.type="button"; x.className="skip";
       // Reversible clear: toggle the block between active and "wird gelöscht".
-      let stash="";
+      // stash is null until something is actually cleared, so the initial
+      // setCleared(false) only sets up the UI and leaves ri.value (the existing
+      // label) untouched — clobbering it with "" was the prefill/data-loss bug.
+      let stash=null;
       const setCleared=on=>{
         if(on){ stash=ri.value; ri.value=""; ri.placeholder="wird gelöscht"; }
-        else { ri.value=stash; stash=""; ri.placeholder=""; }
+        else { if(stash!==null) ri.value=stash; stash=null; ri.placeholder=""; }
         row.classList.toggle("done",on);
         ri.disabled=on;
         x.textContent=on?"↩":"✕";

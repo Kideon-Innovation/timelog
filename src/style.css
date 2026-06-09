@@ -404,7 +404,9 @@
     .countdown{min-width:0;padding:6px 10px;gap:9px}
     .countdown .meta .cd-lbl{display:none}
     .spacer{display:none}
-    .controls{gap:6px;flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start;
+    /* Push the ☰ to the right edge (primary action stays left) so the button
+       lines up under its right-anchored dropdown instead of floating mid-row. */
+    .controls{gap:6px;flex:1 1 100%;flex-wrap:wrap;justify-content:space-between;
       padding-top:10px;border-top:1px solid var(--line-soft)}
     /* The menu is absolutely positioned right:0 of its (full-width-wrapped)
        menu-wrap, so on a narrow screen its 216px box overflows the viewport's

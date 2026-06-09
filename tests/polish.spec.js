@@ -63,6 +63,47 @@ test('legend chips truncate instead of wrapping and keep the full label on title
   expect(css.clipped).toBe(true);
 });
 
+test('editing a multi-slot block pre-fills per-slot inputs and keeps data on save', async ({ page }) => {
+  // Deterministic, gap-free seed: a filler block ending at the current slot makes
+  // gapSlots() return [] (it only scans slots AFTER the last block end), so the
+  // catch-up ping never auto-opens to intercept clicks — independent of wall clock.
+  // The two adjacent same-label blocks form the multi-slot segment we edit.
+  await page.goto('./');
+  await page.evaluate((LONG) => {
+    const SLOT = 15 * 60000;
+    const floor = (t) => { const d = new Date(t); d.setMinutes(Math.floor(d.getMinutes() / 15) * 15, 0, 0); return d; };
+    const cur = floor(new Date()).getTime();
+    const mk = (start, label) => ({
+      start: new Date(start).toISOString(),
+      end: new Date(start + SLOT).toISOString(), label,
+    });
+    localStorage.setItem('timelog.v1', JSON.stringify({
+      blocks: [
+        mk(cur - 4 * SLOT, LONG), mk(cur - 3 * SLOT, LONG), // merged 2-slot segment
+        mk(cur - 1 * SLOT, 'Doku'),                         // filler ending at current slot → no gaps
+      ],
+      recentLabels: [LONG, 'Doku'],
+      settings: { theme: 'light', introSeen: true, soundOn: true, notifyOn: false,
+        intervalMin: 15, notifyNudgeDismissed: false },
+    }));
+  }, LONG);
+  await page.reload();
+  await page.waitForTimeout(1100);
+  await closeModal(page);
+
+  await page.locator('#cal .block').filter({ hasText: LONG }).first().click();
+  await expect(page.locator('#editScrim .modal')).toBeVisible();
+  const rows = page.locator('#editSlots .gaprow input');
+  await expect(rows).toHaveCount(2);
+  // Each per-slot row must be pre-filled with its existing label, not blank.
+  await expect(rows.nth(0)).toHaveValue(LONG);
+  await expect(rows.nth(1)).toHaveValue(LONG);
+  // Saving untouched must NOT wipe the blocks.
+  await page.locator('#editSave').click();
+  await expect(page.locator('#editScrim .modal')).toBeHidden();
+  await expect(page.locator('#cal .block').filter({ hasText: LONG })).toHaveCount(1);
+});
+
 test('recent-label chips in edit dialog stay one line and never overflow the modal', async ({ page }) => {
   await seed(page);
   await closeModal(page);
