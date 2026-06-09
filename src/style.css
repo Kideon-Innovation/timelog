@@ -62,7 +62,7 @@
      keyboard users without doubling up the box-shadow */
   input.txt:focus-visible,select.txt:focus-visible,.gaprow input:focus-visible,
   input[type=date]:focus-visible,.hsel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  html,body{height:100%}
+  html,body{height:100%;overflow:hidden}
   body{
     background:
       radial-gradient(1200px 600px at 80% -10%, var(--glow) 0%, transparent 60%),
@@ -148,6 +148,7 @@
   .menu-wrap{position:relative}
   .menu{
     position:absolute;top:calc(100% + 8px);right:0;z-index:120;min-width:216px;
+    max-width:calc(100vw - 16px);
     display:flex;flex-direction:column;gap:2px;padding:6px;
     background:var(--bg-raised);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
   }

@@ -942,8 +942,17 @@ $("expFrom").onchange=updateExpCount; $("expTo").onchange=updateExpCount;
 
 /* overflow menu */
 const menuEl=$("menu"), menuBtn=$("menuBtn");
-function closeMenu(){ menuEl.hidden=true; menuBtn.setAttribute("aria-expanded","false"); }
-function openMenu(){ menuEl.hidden=false; menuBtn.setAttribute("aria-expanded","true"); }
+function closeMenu(){ menuEl.hidden=true; menuBtn.setAttribute("aria-expanded","false"); menuEl.style.right=""; }
+function openMenu(){
+  menuEl.hidden=false; menuBtn.setAttribute("aria-expanded","true");
+  // Keep the dropdown fully on-screen. On phones the menu button sits near the
+  // left edge, so the default right:0 panel spills off the left; nudge it back
+  // inside the viewport (handles either edge).
+  menuEl.style.right="";
+  const r=menuEl.getBoundingClientRect(), gap=8;
+  if(r.left<gap) menuEl.style.right=(r.left-gap)+"px";
+  else if(r.right>window.innerWidth-gap) menuEl.style.right=(r.right-(window.innerWidth-gap))+"px";
+}
 menuBtn.onclick=e=>{ e.stopPropagation(); menuEl.hidden?openMenu():closeMenu(); };
 menuEl.addEventListener("click",e=>{ if(e.target.closest(".menu-item")) closeMenu(); });
 document.addEventListener("mousedown",e=>{
@@ -1123,7 +1132,17 @@ $("nudgeEnable").onclick=async()=>{
 };
 
 // close scrim on backdrop click / Esc
-document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("mousedown",e=>{ if(e.target===s) closeScrim(s.id); }));
+// Require the press to BOTH start and end on the backdrop itself
+// (pointerdown→click on the scrim). A touch tap that opens a dialog — e.g.
+// tapping an empty calendar slot — synthesises a trailing mouse/click on the
+// freshly shown backdrop; gating on a real pointerdown that lands on the scrim
+// ignores those ghost events so the dialog no longer slams shut the instant it
+// opens on touch.
+document.querySelectorAll(".scrim").forEach(s=>{
+  let downOnSelf=false;
+  s.addEventListener("pointerdown",e=>{ downOnSelf = e.target===s; });
+  s.addEventListener("click",e=>{ if(downOnSelf && e.target===s) closeScrim(s.id); downOnSelf=false; });
+});
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ openScrims().forEach(s=>closeScrim(s.id)); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
 
 // returning to tab → catch up

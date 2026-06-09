@@ -17,11 +17,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TimeLog">
-<!-- icons live in public/ (served verbatim); absolute paths so Vite applies the base prefix -->
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
-<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+<!-- icons live in public/ (served verbatim). Relative hrefs (no leading slash)
+     resolve against the document URL, so the home-screen icon is found whether
+     the app is served at the domain root or under a /timelog/ subpath — exactly
+     how the manifest already references its icons. iOS otherwise falls back to a
+     plain lettered tile when the apple-touch-icon 404s. -->
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

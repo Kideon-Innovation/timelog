@@ -128,6 +128,59 @@ test('drag-to-select a range creates a block', async ({ page }, testInfo) => {
   expect(stored.blocks.some((b) => b.label === label)).toBe(true);
 });
 
+test('touch: tapping an empty slot opens the entry dialog and it STAYS open', async ({ page }, testInfo) => {
+  // Regression for the mobile "can't log anything" bug: a touch tap on a slot
+  // opened the range-entry modal, but the tap's synthesised compatibility
+  // mousedown then landed on the freshly-shown backdrop and instantly closed
+  // it again (the backdrop-close listener fired on `mousedown`). Touch only.
+  test.skip(testInfo.project.name !== 'mobile', 'tap-to-log is a touch gesture');
+  await seed(page);
+  await closeAnyModal(page);
+
+  // Pick a point provably inside the visible part of today's column, clear of
+  // the sticky head and the left heartbeat rail.
+  const col = page.locator('#cal .daycol.today').first();
+  const pt = await col.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const head = el.querySelector('.col-head');
+    const headBottom = head ? head.getBoundingClientRect().bottom : r.top;
+    const visTop = Math.max(r.top, headBottom) + 8;
+    const visBottom = Math.min(r.bottom, window.innerHeight) - 8;
+    return { x: r.left + r.width / 2, y: (visTop + visBottom) / 2 };
+  });
+  await page.touchscreen.tap(pt.x, pt.y);
+
+  // The dialog opens AND survives the trailing synthesised mouse/click events.
+  await expect(page.locator('#pingScrim.show')).toHaveCount(1);
+  await expect(page.locator('#pingKick')).toHaveText('ZEITRAUM EINTRAGEN');
+  await page.waitForTimeout(300); // let any ghost click fire
+  await expect(page.locator('#pingScrim.show')).toHaveCount(1);
+
+  // And committing from that dialog still works on touch.
+  const label = 'Tap-Test-' + Date.now();
+  await page.locator('#pingScrim #pingBody input.txt').fill(label);
+  await page.locator('#pingScrim #pingFoot button.amber').tap();
+  await expect(page.locator('#pingScrim.show')).toHaveCount(0);
+  const stored = await page.evaluate((KEY) => JSON.parse(localStorage.getItem(KEY)), KEY);
+  expect(stored.blocks.some((b) => b.label === label)).toBe(true);
+});
+
+test('the overflow menu stays fully within the viewport', async ({ page }) => {
+  // Regression for the mobile layout bug: the dropdown is anchored right:0 to a
+  // menu button that sits near the LEFT edge on phones, so a 216px panel spilled
+  // off the left of the screen (items clipped). openMenu() now nudges it back in.
+  await seed(page);
+  await closeAnyModal(page);
+
+  await page.click('#menuBtn');
+  await expect(page.locator('#menu')).toBeVisible();
+  const fits = await page.locator('#menu').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return r.left >= 0 && r.right <= window.innerWidth;
+  });
+  expect(fits).toBe(true);
+});
+
 test('menu opens from the hamburger button', async ({ page }) => {
   await seed(page);
   await closeAnyModal(page);
