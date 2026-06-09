@@ -40,7 +40,7 @@ test('Excel export → import round-trip restores all blocks (incl. midnight wra
     page.waitForEvent('download'),
     page.click('#expGo'),
   ]);
-  expect(download.suggestedFilename()).toBe('timelog_2026-06-02_bis_2026-06-02.xlsx');
+  expect(download.suggestedFilename()).toBe('kideon_time_2026-06-02_bis_2026-06-02.xlsx');
   const xlsxPath = await download.path();
   const bytes = readFileSync(xlsxPath);
 

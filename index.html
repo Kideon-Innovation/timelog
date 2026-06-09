@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>TimeLog — Zeiterfassung für Kanzleien</title>
+<title>KIDEON time — Zeiterfassung für Kanzleien</title>
 
 <!-- PWA — manifest <link> is injected by vite-plugin-pwa at build time -->
 <meta name="theme-color" content="#faf9f7" id="metaTheme">
 <!-- Registers the Workbox SW (offline) + auto-reloads on a new deploy. See src/pwa.js. -->
 <script type="module" src="/src/pwa.js"></script>
 <meta name="color-scheme" content="dark light">
-<meta name="application-name" content="TimeLog">
-<meta name="description" content="Zeiterfassung für Kanzleien — TimeLog fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel automatisch auf. Was du einträgst, verlässt nie den Computer: kein Server, kein Konto. Gemacht für Berufsgeheimnisträger — die Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt. Läuft offline, Export als Excel.">
+<meta name="application-name" content="KIDEON time">
+<meta name="description" content="Zeiterfassung für Kanzleien — KIDEON time fragt dich in festen Abständen, woran du arbeitest, und baut deinen Stundenzettel automatisch auf. Was du einträgst, verlässt nie den Computer: kein Server, kein Konto. Gemacht für Berufsgeheimnisträger — die Verschwiegenheitspflicht (§203 StGB) bleibt gewahrt. Läuft offline, Export als Excel.">
 <!-- iOS standalone -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TimeLog">
+<meta name="apple-mobile-web-app-title" content="KIDEON time">
 <!-- icons live in public/ (served verbatim). Relative hrefs (no leading slash)
-     resolve against the document URL, so the home-screen icon is found whether
-     the app is served at the domain root or under a /timelog/ subpath — exactly
-     how the manifest already references its icons. iOS otherwise falls back to a
-     plain lettered tile when the apple-touch-icon 404s. -->
+     resolve against the document URL, so the home-screen icon is found at the
+     domain root (and would still resolve under a subpath) — exactly how the
+     manifest already references its icons. iOS otherwise falls back to a plain
+     lettered tile when the apple-touch-icon 404s. -->
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -38,174 +38,24 @@
 </head>
 <body>
 
-<!-- First-run pitch (empty-state intro) -->
+<!-- First-run welcome (minimal). The marketing landing now lives at
+     https://kideon.de/time — this stays a quiet, clean entry into the tool. -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-wrap">
+    <section class="welcome">
+      <span class="dot"></span>
+      <p class="intro-kick">Zeiterfassung für Kanzleien</p>
+      <h1>KIDEON&nbsp;<em>time</em></h1>
+      <p class="lead">In ruhigen Abständen kurz die Frage „woran arbeitest du gerade?“ — dein Stundenzettel baut sich von selbst auf. Alles bleibt lokal auf diesem Gerät.</p>
 
-    <!-- ===== HERO — primary CTA lives here, above the fold ===== -->
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="intro-kick">Der digitale Stundenzettel · für Kanzleien</p>
-        <h1>Deine Stunden schreiben<br>sich fast von&nbsp;<em>selbst</em>.</h1>
-        <p class="lead">TimeLog fragt dich in ruhigen Abständen, woran du gerade arbeitest. Ein Stichwort genügt — und am Monatsende liegt dein Stundenzettel fertig da, sauber bis zur Rechnung.</p>
-
-        <div class="hero-cta">
-          <button class="btn amber" id="introStart">Kostenlos starten →</button>
-          <a class="hero-secondary" href="#wie">So funktioniert's ↓</a>
-        </div>
-        <p class="intro-cta-note">Sofort im Browser · ohne Konto · ohne Lizenzkosten</p>
-
-        <div class="trust">
-          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>Bleibt auf deinem Rechner</span>
-          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg>DSGVO &amp; §203 gewahrt</span>
-          <span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9 19l-3-7 9-9-3 8 6-1-9 9 1-6-5-.5Z"/></svg>Läuft offline</span>
-        </div>
+      <div class="welcome-cta">
+        <button class="btn amber" id="introStart">Loslegen →</button>
       </div>
 
-      <!-- product demo: the visual anchor of the hero -->
-      <div class="hero-demo">
-        <div class="intro-demo" id="introDemo">
-          <!-- mini app calendar (stylised after the real day view) -->
-          <div class="demo-cal" aria-hidden="true">
-            <div class="demo-gut">
-              <span class="gl" style="top:64px">10</span>
-              <span class="gl" style="top:124px">11</span>
-              <span class="gl" style="top:184px">12</span>
-              <span class="gl" style="top:244px">13</span>
-            </div>
-            <div class="demo-day">
-              <div class="demo-chead"><span class="dow">Mo</span><span class="dnum">8</span></div>
-              <div class="hr-line" style="top:64px"></div>
-              <div class="hr-line" style="top:124px"></div>
-              <div class="hr-line" style="top:184px"></div>
-              <div class="hr-line" style="top:244px"></div>
-              <!-- lived-in entries -->
-              <div class="demo-blk" style="top:70px;height:44px;--bc:#6b86b0;--bg2:#6b86b03a">
-                <div class="l">Mandant Berg – Telefonat</div><div class="t">10:00 – 10:45</div>
-              </div>
-              <div class="demo-blk" style="top:130px;height:48px;--bc:#8aa173;--bg2:#8aa1733a">
-                <div class="l">Akte Lindner – Prüfung</div><div class="t">11:00 – 11:45</div>
-              </div>
-              <!-- the entry the demo logs into the 13:00 slot -->
-              <div class="demo-blk demo-new" style="top:250px;height:44px;--bc:#c49a6c;--bg2:#c49a6c3a">
-                <div class="l">Projekt Atlas – Schriftsatz</div><div class="t">13:00 – 13:45</div>
-              </div>
-            </div>
-
-            <!-- prompt shown after the empty slot is clicked -->
-            <div class="demo-ping">
-              <div class="pk">Eintrag · 13:00 – 13:45</div>
-              <div class="pq">Woran hast du gearbeitet?</div>
-              <span class="pf"><span style="width:7px;height:7px;border-radius:50%;background:currentColor"></span> Projekt Atlas – Schriftsatz</span>
-            </div>
-
-            <!-- fake cursor -->
-            <span class="demo-cursor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2l14 7-6 2-2 6-6-15z"/></svg></span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== SECTION: Wie es funktioniert ===== -->
-    <section class="intro-section" id="wie">
-      <p class="section-kick">In drei Schritten</p>
-      <h2 class="section-title">Aufschreiben, ohne dran zu denken.</h2>
-      <div class="intro-points">
-        <div class="intro-point">
-          <h3><span class="pn">1</span> Stichwort genügt</h3>
-          <p>In ruhigen Abständen fragt TimeLog kurz nach. Ein Wort, ein Klick — kein Formular, kein Timer, kein Drandenken.</p>
-        </div>
-        <div class="intro-point">
-          <h3><span class="pn">2</span> Bleibt bei euch</h3>
-          <p>Jeder im Team trackt lokal auf dem eigenen Rechner. Nichts wird hochgeladen — Mandantendaten verlassen die Kanzlei nie.</p>
-        </div>
-        <div class="intro-point">
-          <h3><span class="pn">3</span> Fertig für die Rechnung</h3>
-          <p>Am Monatsende ein sauberer Excel-Export — direkt weiter nach DATEV oder in deine Abrechnung.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== SECTION: Warum besser als andere Tools? ===== -->
-    <section class="intro-section intro-counter">
-      <p class="section-kick">Der Unterschied</p>
-      <h2 class="section-title">Warum besser als andere Tools?</h2>
-      <div class="intro-flaws">
-        <div class="intro-flaw">
-          <h3><span class="fx" aria-hidden="true">✕</span> Auto-Tracking</h3>
-          <p>Mitschneide-Tools sind teuer und liefern dir am Ende 1000 Schnipsel. Wer arbeitet schon 15 Minuten am Stück in einem Fenster? Abends sortierst du trotzdem von Hand.</p>
-        </div>
-        <div class="intro-flaw">
-          <h3><span class="fx" aria-hidden="true">✕</span> Stoppuhr</h3>
-          <p>Start drücken klappt — bis du's vergisst. Dann ist Nachtragen jedes Mal ein Ratespiel: wann war das, wie lange?</p>
-        </div>
-        <div class="intro-flaw intro-flaw-good">
-          <h3><span class="fx" aria-hidden="true">✓</span> TimeLog</h3>
-          <p>Fragt von selbst, woran du arbeitest. Ein Klick bestätigt das Thema, oder du tippst kurz was Neues. <strong>Kein Mitschneiden, kein Drandenken.</strong></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== SECTION: Fokus — der eigentliche Gewinn ===== -->
-    <section class="intro-section intro-focus">
-      <p class="section-kick">Mehr als ein Stundenzettel</p>
-      <h2 class="section-title">Du weißt wieder, woran du arbeitest.</h2>
-      <p class="section-lead">Die kurze Frage zwischendurch ist mehr als Buchhaltung. Sie holt deine Aufmerksamkeit zurück auf das, was gerade zählt — wie ein ruhiger Pomodoro-Takt, nur ohne starre 25-Minuten-Uhr.</p>
-      <div class="intro-points">
-        <div class="intro-point">
-          <h3>Ein Anker im Tag</h3>
-          <p>In dem Moment, in dem du dein Thema benennst, bist du wieder bei der Sache. Kurze Unterbrechung, klarer Kopf — statt halb abgelenkt weiterzulaufen.</p>
-        </div>
-        <div class="intro-point">
-          <h3>Kein „Was hab ich gerade getan?“</h3>
-          <p>Du schreibst im Moment auf, nicht abends aus dem Gedächtnis. Keine verlorene Stunde, die du später mühsam rekonstruierst.</p>
-        </div>
-        <div class="intro-point">
-          <h3>Fokus und saubere Abrechnung in einem</h3>
-          <p>Weil du im Moment festhältst, woran du sitzt, stimmt der Stundenzettel von selbst. Konzentriert arbeiten und sauber abrechnen sind dieselbe Handlung.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== closing CTA + reassurance ===== -->
-    <section class="intro-section intro-final">
-      <div class="intro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Alles bleibt auf diesem Computer — kein Server, kein Konto.</div>
-      <div class="intro-cta">
-        <button class="btn amber" id="introStartBottom">Kostenlos starten →</button>
-        <button class="btn" id="introInstall">↗ Als App installieren</button>
-      </div>
-      <p class="intro-cta-note">Sofort im Browser · ohne Konto · ohne Lizenzkosten</p>
-    </section>
-
-    <footer class="intro-footer">
-      <div class="footer-social">
-        <a href="https://github.com/Kideon-Innovation/timelog" target="_blank" rel="noopener noreferrer"
-           aria-label="Quellcode auf GitHub ansehen" title="Was steckt dahinter? Quellcode auf GitHub">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"/></svg>
-        </a>
-        <a href="https://www.linkedin.com/company/kideon-de/" target="_blank" rel="noopener noreferrer"
-           aria-label="Kideon auf LinkedIn" title="Kideon auf LinkedIn">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z"/></svg>
-        </a>
-      </div>
-
-      <div class="footer-oss-grid">
-      <p class="footer-oss">
-        <b>Open Source.</b> TimeLog steht unter der
-        <a href="https://github.com/Kideon-Innovation/timelog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT-Lizenz</a> —
-        kostenlos nutzbar, anpassbar und weitergebbar. Den ganzen Quellcode kannst du auf GitHub einsehen.
+      <p class="welcome-more">
+        <a href="https://kideon.de/time" target="_blank" rel="noopener noreferrer">Mehr über KIDEON&nbsp;time ↗</a>
       </p>
-
-      <p class="footer-oss">
-        <b>Warum ist das kostenlos?</b> Kideon baut Software für Steuerberater und Kanzleien und lebt von Anpassungen
-        und maßgeschneiderten Lösungen — nicht von diesem Tool. Deshalb gibt es hier keinen Haken.
-        Fragen zum Tool, oder soll etwas auf deine Kanzlei zugeschnitten werden?
-        <a href="https://termin.kideon.de/joerg/15min" target="_blank" rel="noopener noreferrer">Melde dich einfach bei Kideon</a>.
-      </p>
-      </div>
-    </footer>
-
-    <p class="intro-foot">Läuft offline · von <a href="https://kideon.de/" target="_blank" rel="noopener">Kideon</a></p>
+    </section>
   </div>
 </div>
 
@@ -213,7 +63,7 @@
   <header>
     <div class="brand">
       <span class="dot"></span>
-      <h1>TimeLog</h1>
+      <h1>KIDEON time</h1>
       <small>Zeiterfassung für Kanzleien</small>
     </div>
     <div class="clock">
@@ -234,6 +84,10 @@
     </div>
     <div class="spacer"></div>
     <div class="controls">
+      <!-- Install is a top-level action: hidden by default, shown only when the
+           app is installable, and hidden again once it's installed (see main.js). -->
+      <button class="btn install-cta" id="installBtn">↗ App installieren</button>
+      <span class="installed-pill" id="installedPill" hidden>✓ Installiert</span>
       <button class="btn amber" id="logNowBtn">+ Jetzt eintragen</button>
       <div class="menu-wrap">
         <button class="btn icon" id="menuBtn" title="Menü" aria-haspopup="true" aria-expanded="false">☰</button>
@@ -245,7 +99,6 @@
           <button class="menu-item" id="themeBtn">🌙 Theme</button>
           <button class="menu-item" id="notifyBtn">🔔 Erinnerungen anschalten</button>
           <button class="menu-item" id="soundBtn">🔇 Ton ausschalten</button>
-          <button class="menu-item" id="installBtn">↗ App installieren</button>
           <div class="menu-sep"></div>
           <button class="menu-item" id="exportBtn">↓ Daten-Export</button>
           <button class="menu-item" id="importBtn">↑ Excel-Import</button>
@@ -260,7 +113,7 @@
   <!-- Notifications-off nudge: ambient bar, dismissible once -->
   <div class="nudge" id="notifyNudge" hidden>
     <span class="nudge-ic" aria-hidden="true">🔔</span>
-    <span class="nudge-txt">TimeLog kann dich nur erinnern, wenn Benachrichtigungen an sind.
+    <span class="nudge-txt">KIDEON time kann dich nur erinnern, wenn Benachrichtigungen an sind.
       <em id="nudgeHint"></em></span>
     <button class="btn amber nudge-act" id="nudgeEnable">Aktivieren</button>
     <button class="nudge-x" id="nudgeDismiss" title="Ausblenden" aria-label="Hinweis ausblenden">×</button>
@@ -364,8 +217,8 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
     <div class="modal-h">
       <div class="kick">INSTALLIEREN</div>
-      <h2 id="installTitle">TimeLog als App</h2>
-      <p id="installLead">So legst du TimeLog wie eine native App auf deinen Home-Bildschirm — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.</p>
+      <h2 id="installTitle">KIDEON time als App</h2>
+      <p id="installLead">So legst du KIDEON time wie eine native App auf deinen Home-Bildschirm — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.</p>
     </div>
     <div class="modal-b" id="installBody"></div>
     <div class="modal-f">

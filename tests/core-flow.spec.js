@@ -215,5 +215,5 @@ test('Excel export is reachable, reports the row count, and triggers a download'
     page.waitForEvent('download'),
     page.click('#expGo'),
   ]);
-  expect(download.suggestedFilename()).toMatch(/^timelog_.*\.xlsx$/);
+  expect(download.suggestedFilename()).toMatch(/^kideon_time_.*\.xlsx$/);
 });
