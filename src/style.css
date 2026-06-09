@@ -399,6 +399,9 @@
     header{gap:12px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex-wrap:wrap}
     .brand h1{font-size:25px}
     .brand small{display:none}
+    /* Push brand left so the clock (time+date) and countdown timer group to the
+       right edge of the first header row. */
+    .brand{margin-right:auto}
     .clock .big{font-size:18px}
     .clock .sub{font-size:10px}
     .countdown{min-width:0;padding:6px 10px;gap:9px}
