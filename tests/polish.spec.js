@@ -120,6 +120,40 @@ test('export dialog warns when Von is after Bis instead of silently showing 0', 
   await expect(count).toContainText(/Blöcke/);
 });
 
+// The inline #expCount warns on an inverted range, but pressing Export/DATEV
+// anyway used to toast the generic "Nichts zu exportieren" — a different,
+// confusing message for the same problem. Both export buttons must surface the
+// same "Von liegt nach Bis" wording so the messages agree.
+test('export buttons surface the inverted-range message instead of "Nichts zu exportieren"', async ({ page }) => {
+  await seed(page);
+  await closeModal(page);
+  await page.click('#menuBtn');
+  await page.click('#exportBtn');
+  await expect(page.locator('#exportScrim .modal')).toBeVisible();
+  await page.fill('#expFrom', '2026-06-20');
+  await page.fill('#expTo', '2026-06-01');
+  await page.dispatchEvent('#expTo', 'change');
+
+  const toast = page.locator('#toast');
+
+  // Excel export with an inverted range → "Von liegt nach Bis", NOT generic.
+  await page.click('#expGo');
+  await expect(toast).toContainText(/„Von“ liegt nach „Bis“/);
+  await expect(toast).not.toContainText('Nichts zu exportieren');
+  // The dialog must stay open so the user can fix the range.
+  await expect(page.locator('#exportScrim .modal')).toBeVisible();
+
+  // DATEV-Lohn export with an inverted range → same message. Provide the
+  // mandatory Personalnummer/Lohnart so we reach the range check, not the
+  // missing-config toast. The inputs live in a collapsed <details> — open it.
+  await page.evaluate(() => { document.getElementById('datevDetails').open = true; });
+  await page.fill('#datevPnr', '12345');
+  await page.fill('#datevLa', '200');
+  await page.click('#expDatev');
+  await expect(toast).toContainText(/„Von“ liegt nach „Bis“/);
+  await expect(toast).not.toContainText('Nichts zu exportieren');
+});
+
 test('heartbeat rail marks are not in the tab order but stay SR-discoverable', async ({ page }) => {
   await seed(page);
   await closeModal(page);

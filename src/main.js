@@ -20,7 +20,7 @@ import {
 } from './state.js';
 import {
   colorFor, uid, setBlock, bumpRecent, blocksInRange,
-  fillRange, lastLabel,
+  fillRange, clearRange, lastLabel,
   beat, gapSlots,
 } from './blocks.js';
 import { $ } from './ui/dom.js';
@@ -382,11 +382,18 @@ function exportRows(){
   return [...state.blocks].sort((a,b)=>new Date(a.start)-new Date(b.start))
     .filter(b=>{ const s=new Date(b.start); return (!from||s>=from)&&(!to||s<=to); });
 }
+// Shared wording for an inverted export range, used by both the inline #expCount
+// hint and the Export/DATEV toasts so the user sees ONE consistent message.
+const INVERTED_RANGE_MSG="„Von“ liegt nach „Bis“ — bitte Zeitraum prüfen.";
+function rangeInverted(){
+  const fromV=$("expFrom").value, toV=$("expTo").value;
+  return !!(fromV && toV && fromV>toV);
+}
 function updateExpCount(){
-  const fromV=$("expFrom").value, toV=$("expTo").value, el=$("expCount");
-  if(fromV && toV && fromV>toV){
+  const el=$("expCount");
+  if(rangeInverted()){
     // Inverted range silently yields 0 — point the user at the swapped dates.
-    el.textContent="„Von“ liegt nach „Bis“ — bitte Zeitraum prüfen.";
+    el.textContent=INVERTED_RANGE_MSG;
     el.classList.add("warn");
     return;
   }
@@ -395,6 +402,9 @@ function updateExpCount(){
 }
 function doExport(){
   if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
+  // An inverted range yields 0 rows for a non-obvious reason; surface the same
+  // hint the inline counter shows instead of the generic "Nichts zu exportieren".
+  if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const rows=exportRows();
   if(!rows.length){ toast("Nichts zu exportieren"); return; }
   const data=[["Datum","Wochentag","Start","Ende","Dauer (min)","Tätigkeit"]];
@@ -424,6 +434,9 @@ function fmtHours(min){ return (min/60).toFixed(2).replace(".",","); }
 // exportRows() ist bereits nach start sortiert → Tagesreihenfolge bleibt erhalten.
 function datevLohnRows(){
   const byDay=new Map();
+  // Bucket each block under its START day. A midnight-crossing block (e.g. the
+  // 23:45→00:00 last slot) counts entirely under the day it began on — by design,
+  // consistent with exportRows()'s start-day sorting. Total minutes are unaffected.
   exportRows().forEach(b=>{ const key=b.start.slice(0,10);
     byDay.set(key,(byDay.get(key)||0)+blockDurMin(b)); });
   return [...byDay.entries()].map(([key,min])=>
@@ -433,6 +446,8 @@ function doExportDatev(){
   const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
   saveDatevCfg({pnr,la});
   if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
+  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
+  if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const days=datevLohnRows();
   if(!days.length){ toast("Nichts zu exportieren"); return; }
   const lines=["Personalnummer;Datum;Lohnart;Stunden"];
@@ -505,8 +520,12 @@ function applyImport(rows){
   }
   if(!ok){ toast("Keine gültigen Zeilen gefunden"); return; }
   for(const b of imported){
-    const t=new Date(b.start).getTime();
-    state.blocks=state.blocks.filter(x=>new Date(x.start).getTime()!==t); // slot-overwrite
+    // Replace whatever the imported block covers across its FULL span, the same
+    // way in-app drag does (fillRange→clearRange). A plain start-only overwrite
+    // left finer pre-existing blocks behind when a coarse row (e.g. 09:00–11:00)
+    // landed over them, producing overlapping/stacked blocks and a double-counted
+    // day total. clearRange clips straddling blocks at the edges.
+    clearRange(new Date(b.start), new Date(b.end));
     state.blocks.push({id:uid(),start:b.start,end:b.end,label:b.label});
     bumpRecent(b.label);
   }
