@@ -105,11 +105,13 @@ function openCatchup(gaps){
     const range="("+hhmm(slot)+"–"+hhmm(end)+")";
     const skip=document.createElement("button"); skip.type="button"; skip.className="skip";
     // Reversible skip: clicking toggles the row between active and "leer gelassen".
-    // Skipping remembers any text so it can be restored on undo.
-    let stash="";
+    // Skipping remembers any text so it can be restored on undo. stash starts
+    // null so the initial setSkipped(false) never clobbers a value — same safe
+    // pattern as openEdit's per-slot rows (see setCleared there).
+    let stash=null;
     const setSkipped=on=>{
       if(on){ stash=inp.value; inp.value=""; inp.placeholder="leer gelassen"; }
-      else { inp.value=stash; stash=""; inp.placeholder="Stichwort …"; }
+      else { if(stash!==null) inp.value=stash; stash=null; inp.placeholder="Stichwort …"; }
       row.classList.toggle("done",on);
       inp.disabled=on;
       skip.textContent=on?"↩":"✕";
