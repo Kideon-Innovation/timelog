@@ -44,6 +44,15 @@ test.describe('intro / landing', () => {
     await expect(page.locator('#intro')).not.toHaveClass(/show/);
   });
 
+  test('focus section pitches the attention/Pomodoro benefit', async ({ page }) => {
+    await freshIntro(page);
+    const focus = page.locator('.intro-focus');
+    await expect(focus).toBeVisible();
+    await expect(focus.locator('.section-title')).toHaveText('Du weißt wieder, woran du arbeitest.');
+    await expect(focus.getByText('Pomodoro')).toBeVisible();
+    await expect(focus.locator('.intro-point')).toHaveCount(3);
+  });
+
   test('closing CTA at the bottom also enters the app', async ({ page }) => {
     await freshIntro(page);
     const bottom = page.locator('#introStartBottom');
