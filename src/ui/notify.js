@@ -32,7 +32,7 @@ export function toast(m) {
 export function notify(n) {
   if (!state.settings.notifyOn || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {
-    new Notification('TimeLog — Ping', {
+    new Notification('KIDEON time — Ping', {
       body: n > 1 ? (n + ' Einträge nachzutragen') : 'Woran arbeitest du gerade?',
       tag: 'timelog-ping', renotify: true,
     });

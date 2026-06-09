@@ -1,23 +1,23 @@
-# TimeLog
+# KIDEON time
 
 **Zeiterfassung für Kanzleien.** · **Für Berufsgeheimnisträger (§203) · DSGVO-konform · Funktioniert offline**
-Live: https://timelog.kideon.de/
+Live: https://time.kideon.de · Mehr erfahren: https://kideon.de/time
 
-TimeLog ist eine App für die Zeiterfassung in Kanzleien — Steuer- und Rechtsberatung. Sie
+KIDEON time ist eine App für die Zeiterfassung in Kanzleien — Steuer- und Rechtsberatung. Sie
 fragt dich in festem Takt — *„woran arbeitest du gerade, für welchen Mandanten?"* — du
 tippst ein Stichwort, und dein Tag wächst als farbige Blöcke in einer Kalenderansicht. Am
 Monatsende exportierst du alles als Excel: fertiger Stundenzettel, abrechenbar.
 
 **Was du einträgst, verlässt nie deinen Computer.** Kein Server, kein Konto, keine Übertragung
 an Dritte — auch Mandantennamen bleiben ausschließlich auf deinem Gerät. Niemand außer dir kann
-sie sehen. Damit ist TimeLog **für Berufsgeheimnisträger gemacht**: deine Verschwiegenheitspflicht
+sie sehen. Damit ist KIDEON time **für Berufsgeheimnisträger gemacht**: deine Verschwiegenheitspflicht
 (§203 StGB) bleibt gewahrt, und DSGVO-konform ist es gleich mit. Genau deshalb läuft die App auch
 komplett **offline**.
 
 Der Takt ist wählbar: **60, 30, 20, 15, 10 oder 6 Minuten** (Standard 15). Kürzerer Takt =
 feinere Auflösung, häufigere Nachfragen.
 
-![TimeLog – 3-Tage-Kalender](public/screenshots/desktop-dark.png)
+![KIDEON time – 3-Tage-Kalender](public/screenshots/desktop-dark.png)
 
 ## Idee
 
@@ -27,11 +27,11 @@ daran scheitert sie im Alltag. Automatische Tracker wiederum sehen zwar App, Fen
 Datei, aber nie die *Sache*: welcher Mandant, welches Aktenzeichen weiß nur du. Also
 rekonstruierst du es am Monatsende doch wieder aus dem Gedächtnis.
 
-TimeLog dreht das um: **es fragt dich**, in regelmäßigem Takt. Ein Stichwort — Mandant,
+KIDEON time dreht das um: **es fragt dich**, in regelmäßigem Takt. Ein Stichwort — Mandant,
 Sache, Tätigkeit — und du bist durch. Daraus entsteht ohne Disziplin-Aufwand ein lückenloser,
 abrechenbarer Stundenzettel.
 
-**Leere Blöcke sind gewollt.** Nicht erfasst = kein Block. TimeLog drängt dich nie,
+**Leere Blöcke sind gewollt.** Nicht erfasst = kein Block. KIDEON time drängt dich nie,
 Lücken zu füllen; leer lassen ist immer ein Klick. Eine dezente Aktivitätsspur im Kalender
 zeigt dir nebenbei, wann der Rechner überhaupt an war — so siehst du auf einen Blick, welche
 Lücken echte Pausen sind und welche noch nachzutragen sind.
@@ -39,11 +39,11 @@ Lücken echte Pausen sind und welche noch nachzutragen sind.
 ## Wie es funktioniert
 
 1. **Öffnen** — als installierte App, durch Doppelklick auf die Datei oder im Browser.
-   Beim ersten Start fragt TimeLog, ob es dich an die Eingabe erinnern darf.
-2. **Nachfrage** — im gewählten Takt meldet sich TimeLog (Ton + kurzer Hinweis, auf Wunsch
+   Beim ersten Start fragt KIDEON time, ob es dich an die Eingabe erinnern darf.
+2. **Nachfrage** — im gewählten Takt meldet sich KIDEON time (Ton + kurzer Hinweis, auf Wunsch
    auch als Erinnerung des Geräts). Du tippst ein Stichwort, wählst eine der letzten
    Tätigkeiten, klickst **„Weiter wie eben"** oder lässt leer. Den Takt stellst du oben um.
-3. **Nachtragen** — warst du weg, fragt TimeLog beim Zurückkommen die verpassten Einträge
+3. **Nachtragen** — warst du weg, fragt KIDEON time beim Zurückkommen die verpassten Einträge
    der letzten ~2 Stunden ab. Einzeln füllen, „alle = X" sammeln oder leer lassen.
 4. **Prüfen & nachtragen** — der gefüllte Tag steht als Blöcke in einer 3-Tage-Ansicht im
    Stil eines Kalenders. Blöcke anklicken zum Bearbeiten/Löschen, mit ◀ ▶ durch die Tage.
@@ -59,7 +59,7 @@ Lücken echte Pausen sind und welche noch nachzutragen sind.
 
 ## Als App installieren
 
-TimeLog lässt sich wie eine normale App installieren: eigenes Fenster, offline lauffähig,
+KIDEON time lässt sich wie eine normale App installieren: eigenes Fenster, offline lauffähig,
 eigenes Symbol auf Startbildschirm bzw. im Dock.
 
 - **Chrome / Edge (Desktop & Android):** Installieren-Symbol in der Adressleiste — oder den
@@ -67,7 +67,7 @@ eigenes Symbol auf Startbildschirm bzw. im Dock.
 - **iPhone / iPad (Safari):** Teilen <kbd>⬆</kbd> → **„Zum Home-Bildschirm"** → Hinzufügen.
 - Der **„↗ App installieren"**-Button in der App führt dich plattformgerecht durch die Schritte.
 
-Nach der Installation startet TimeLog im eigenen Fenster, ohne Browser-Leiste, und läuft
+Nach der Installation startet KIDEON time im eigenen Fenster, ohne Browser-Leiste, und läuft
 komplett offline.
 
 | Tagesansicht (Mobile) | Nachfrage | Installations-Hilfe |
@@ -90,7 +90,7 @@ komplett offline.
 - Hell-/Dunkel-Ansicht, Schnellauswahl der zuletzt genutzten Tätigkeiten.
 - Excel-Export mit Datumsfilter.
 
-![TimeLog – Light Theme](public/screenshots/desktop-light.png)
+![KIDEON time – Light Theme](public/screenshots/desktop-light.png)
 
 ## Berufsgeheimnis (§203) & Datenschutz
 
@@ -117,13 +117,14 @@ im Excel-Export.
 
 ## Tech
 
-Vanilla HTML/CSS/JS, kein Framework — die ganze App lebt weiterhin in einer einzigen
-`index.html` (inline CSS + JS). [SheetJS](https://sheetjs.com) liegt lokal unter
+Vanilla HTML/CSS/JS, kein Framework — `index.html` ist die App-Shell, die Logik liegt als
+ES-Module unter `src/`. [SheetJS](https://sheetjs.com) liegt lokal unter
 `public/vendor/`, damit der Export auch offline funktioniert.
 
 Gebaut wird mit **[Vite](https://vitejs.dev) + [vite-plugin-pwa](https://vite-pwa-org.netlify.app)**.
-Vite ist nur ein dünner Wrapper um die `index.html`: es setzt den Subpfad (`base: '/timelog/'`),
-hasht Assets und lässt vite-plugin-pwa einen Workbox-Service-Worker generieren. Der SW
+Vite hasht die Assets und nutzt eine relative Basis (`base: './'`), sodass die App am Domain-Root
+(`https://time.kideon.de`) ohne hartkodierten Pfad-Präfix läuft, und lässt vite-plugin-pwa einen
+Workbox-Service-Worker generieren. Der SW
 **precached** die App-Shell (offline) und ist auf **`registerType: 'autoUpdate'`** mit
 `skipWaiting` + `clientsClaim` konfiguriert: ein neuer Deploy installiert sich, übernimmt sofort
 und die Seite lädt automatisch auf die neue Version neu — **kein manuelles Hard-Refresh**, offline
@@ -146,12 +147,19 @@ PLAYWRIGHT_MODULE="$(npm root -g)/@playwright/test/index.js" node scripts/genera
 PORT=8000 PLAYWRIGHT_MODULE="$(npm root -g)/@playwright/test/index.js" node scripts/screenshots.mjs
 ```
 
-## Deployment (GitHub Pages)
+## Deployment
 
-Repo → Settings → Pages → Source: **GitHub Actions**. Jeder Push auf `main` baut über
-`.github/workflows/deploy.yml` mit Vite (`npm ci && npm run build`) und veröffentlicht `dist/`
-via `actions/deploy-pages`. GitHub Pages liefert über HTTPS aus — Service Worker, Auto-Update
-und Installation funktionieren out of the box.
+KIDEON time läuft auf Kideon-Infrastruktur (Coolify) unter **https://time.kideon.de**.
+Gebaut wird mit `npm ci && npm run build` nach `dist/`; ausgeliefert wird das statische
+`dist/` als SPA über HTTPS — Service Worker, Auto-Update und Installation funktionieren so
+out of the box.
+
+Die Containerisierung (Dockerfile / Reverse-Proxy) liegt bewusst **nicht** in diesem Repo,
+sondern im Infrastruktur-Repo (`kideon-cloud`), das dieses Repo zur Build-Zeit auscheckt und
+`dist/` baut. Dieses Repo bleibt damit reine App ohne Deployment-spezifische Konfiguration.
+
+> GitHub Pages wird nicht mehr verwendet. Der frühere Pages-Workflow wurde entfernt; bitte
+> zusätzlich in **Repo → Settings → Pages** die Quelle auf *None* stellen (manueller Schritt).
 
 ## Lizenz
 
