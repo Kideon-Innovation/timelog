@@ -331,8 +331,8 @@ $("exportNudgeGo").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 /* ============================================================
    WIRING
    ============================================================ */
-$("prevBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),-getDayCols())); render(); };
-$("nextBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),getDayCols())); render(); };
+$("prevBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),-1)); render(); };
+$("nextBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),1)); render(); };
 $("todayBtn").onclick=()=>{ setAnchor(startOfDay(new Date())); render(); scrollToNow(); };
 $("datePick").onchange=e=>{ if(e.target.value){ setAnchor(startOfDay(new Date(e.target.value+"T00:00:00"))); render(); } };
 $("logNowBtn").onclick=()=>openLogNow();
