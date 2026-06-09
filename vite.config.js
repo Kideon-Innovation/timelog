@@ -1,13 +1,12 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// TimeLog ships to GitHub Pages, but is reachable both at the custom-domain
-// root (https://timelog.kideon.de/) AND under the project /timelog/ subpath.
-// A relative base ('./') makes every hashed asset URL resolve against the
-// document URL — exactly like the relative icon/manifest hrefs — so the app
-// works at either location. An absolute '/timelog/' base hard-codes the
-// subpath and 404s every asset on the custom domain.
-// The single index.html stays the app; Vite just hashes external assets,
+// KIDEON time is served from the domain root (https://time.kideon.de/) on
+// Kideon infrastructure (Coolify, behind nginx). A relative base ('./') makes
+// every hashed asset URL resolve against the document URL — exactly like the
+// relative icon/manifest hrefs — so the app keeps working at the root without
+// hard-coding any path prefix. (It also stays portable if ever served under a
+// subpath.) The single index.html stays the app; Vite just hashes external assets,
 // rewrites to the relative base, and (via vite-plugin-pwa) generates a Workbox
 // service worker that precaches the app shell for offline use AND auto-updates
 // on deploy.
@@ -33,10 +32,10 @@ export default defineConfig({
       // Reuse the existing installable-PWA metadata (was manifest.webmanifest)
       // so installability/icons/theme/offline are preserved 1:1.
       manifest: {
-        name: 'TimeLog — Zeiterfassung für Kanzleien',
-        short_name: 'TimeLog',
+        name: 'KIDEON time — Zeiterfassung für Kanzleien',
+        short_name: 'KIDEON time',
         description:
-          'Zeiterfassung für Kanzleien. TimeLog fragt dich in festem Takt, woran du arbeitest, und baut deinen Stundenzettel als Blöcke auf. DSGVO-konform, weil alles lokal im Browser bleibt: kein Server, kein Login, voll offline. Export als Excel.',
+          'Zeiterfassung für Kanzleien. KIDEON time fragt dich in festem Takt, woran du arbeitest, und baut deinen Stundenzettel als Blöcke auf. DSGVO-konform, weil alles lokal im Browser bleibt: kein Server, kein Login, voll offline. Export als Excel.',
         lang: 'de',
         dir: 'ltr',
         start_url: './',

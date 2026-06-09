@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const KEY = 'timelog.v1';
 
-// Boot fresh (introSeen=false) so the first-run intro/landing shows.
+// Boot fresh (introSeen=false) so the first-run welcome shows.
 async function freshIntro(page, theme = 'light') {
   await page.goto('./');
   await page.evaluate(({ KEY, theme }) => {
@@ -16,10 +16,14 @@ async function freshIntro(page, theme = 'light') {
 }
 
 // The Playwright config runs every test under both the `desktop` and
-// `mobile` projects, so the above-the-fold assertion is verified on both
-// viewports without per-file device overrides.
-test.describe('intro / landing', () => {
-  test('hero CTA is visible above the fold (desktop + mobile)', async ({ page }) => {
+// `mobile` projects, so these assertions are verified on both viewports.
+//
+// The full marketing landing was pulled OUT of the product (it now lives at
+// https://kideon.de/time). What remains is a minimal, quiet first-run welcome:
+// brand + one-line pitch + a single "Loslegen" CTA + an external "Mehr erfahren"
+// link. Opening the app should go (near-)straight to the tool.
+test.describe('first-run welcome', () => {
+  test('welcome CTA is visible above the fold (desktop + mobile)', async ({ page }) => {
     await freshIntro(page);
     const cta = page.locator('#introStart');
     await expect(cta).toBeVisible();
@@ -30,7 +34,7 @@ test.describe('intro / landing', () => {
     expect(box.y + box.height).toBeLessThanOrEqual(vh);
   });
 
-  test('hero CTA dismisses the intro and enters the app', async ({ page }) => {
+  test('welcome CTA dismisses the intro and enters the app', async ({ page }) => {
     await freshIntro(page);
     await page.locator('#introStart').click();
     await expect(page.locator('#intro')).not.toHaveClass(/show/);
@@ -44,26 +48,20 @@ test.describe('intro / landing', () => {
     await expect(page.locator('#intro')).not.toHaveClass(/show/);
   });
 
-  test('comparison section is framed as "better than other tools"', async ({ page }) => {
+  test('welcome links out to the external marketing page (kideon.de/time)', async ({ page }) => {
     await freshIntro(page);
-    await expect(page.locator('.intro-counter .section-title')).toHaveText('Warum besser als andere Tools?');
+    const more = page.locator('.welcome-more a');
+    await expect(more).toBeVisible();
+    await expect(more).toHaveAttribute('href', 'https://kideon.de/time');
+    await expect(more).toHaveAttribute('target', '_blank');
   });
 
-  test('focus section pitches the attention/Pomodoro benefit', async ({ page }) => {
+  test('no in-product marketing wall: the old landing sections are gone', async ({ page }) => {
     await freshIntro(page);
-    const focus = page.locator('.intro-focus');
-    await expect(focus).toBeVisible();
-    await expect(focus.locator('.section-title')).toHaveText('Du weißt wieder, woran du arbeitest.');
-    await expect(focus.getByText('Pomodoro')).toBeVisible();
-    await expect(focus.locator('.intro-point')).toHaveCount(3);
-  });
-
-  test('closing CTA at the bottom also enters the app', async ({ page }) => {
-    await freshIntro(page);
-    const bottom = page.locator('#introStartBottom');
-    await bottom.scrollIntoViewIfNeeded();
-    await bottom.click();
-    await expect(page.locator('#intro')).not.toHaveClass(/show/);
-    await expect(page.locator('#cal')).toBeVisible();
+    // The comparison / focus / 3-step pitch and the in-app demo were removed.
+    await expect(page.locator('.intro-counter')).toHaveCount(0);
+    await expect(page.locator('.intro-focus')).toHaveCount(0);
+    await expect(page.locator('.intro-demo')).toHaveCount(0);
+    await expect(page.locator('#introStartBottom')).toHaveCount(0);
   });
 });

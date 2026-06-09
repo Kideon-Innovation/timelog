@@ -1,7 +1,7 @@
 {
-  "name": "timelog",
+  "name": "kideon-time",
   "version": "1.0.0",
-  "description": "TimeLog — local-only Zeiterfassung PWA für Steuerberater/Kanzleien.",
+  "description": "KIDEON time — local-only Zeiterfassung PWA für Steuerberater/Kanzleien.",
   "private": true,
   "type": "module",
   "scripts": {

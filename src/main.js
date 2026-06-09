@@ -41,7 +41,7 @@ const floorSlot = (d) => floorSlotMin(d, getSlotMin());
 const nextBoundary = (d) => nextBoundaryMin(d, getSlotMin());
 
 /* ============================================================
-   TimeLog — passive time tracker.  MIT License.
+   KIDEON time — passive time tracker.  MIT License.
    State + config live in state.js; pure time helpers in time.js.
    ============================================================ */
 
@@ -99,9 +99,9 @@ function doExport(){
     data.push([s.toLocaleDateString("de-DE"),DOW[s.getDay()],hhmm(s),hhmm(e),blockDurMin(b),b.label]); });
   const ws=XLSX.utils.aoa_to_sheet(data);
   ws["!cols"]=[{wch:12},{wch:10},{wch:8},{wch:8},{wch:12},{wch:34}];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"TimeLog");
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"KIDEON time");
   const tag=(rows[0].start.slice(0,10))+"_bis_"+(rows[rows.length-1].start.slice(0,10));
-  XLSX.writeFile(wb,"timelog_"+tag+".xlsx");
+  XLSX.writeFile(wb,"kideon_time_"+tag+".xlsx");
   markExported();
   close("exportScrim"); toast("Exportiert: "+rows.length+" Blöcke");
 }
@@ -319,7 +319,7 @@ function notifyExportOverdue(days){
   // (dismiss would also kill the banner); use a dedicated per-day notify flag.
   if(state.settings.exportNotifyDay===todayKey()) return;
   try{
-    new Notification("TimeLog — Daten sichern",{
+    new Notification("KIDEON time — Daten sichern",{
       body:"Seit "+days+" Tagen kein Excel-Export. Lad deine Daten runter, damit nichts verloren geht.",
       tag:"timelog-export", renotify:false });
     state.settings.exportNotifyDay=todayKey(); save();
@@ -370,28 +370,12 @@ $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.
 function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0;
   // Mirror the modal pattern: pull the app out of the a11y tree + tab order so
   // focus can't leak into the controls hidden behind the intro overlay.
-  const app=$("app"); app.setAttribute("aria-hidden","true"); try{ app.inert=true; }catch(e){}
-  armIntroDemo(); }
+  const app=$("app"); app.setAttribute("aria-hidden","true"); try{ app.inert=true; }catch(e){} }
 function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true");
   const app=$("app"); app.removeAttribute("aria-hidden"); try{ app.inert=false; }catch(e){} }
 
-/* Ping→Excel preview: loop the CSS animation only while it's actually
-   on screen. Scoped to the scrolling .intro container; CSS already
-   neutralises everything under prefers-reduced-motion. Set up once. */
-let _demoObserver=null;
-function armIntroDemo(){
-  const demo=$("introDemo"); if(!demo) return;
-  if(_demoObserver){ _demoObserver.disconnect(); }
-  if(!("IntersectionObserver" in window)){ demo.classList.add("playing"); return; }
-  _demoObserver=new IntersectionObserver((entries)=>{
-    for(const e of entries) demo.classList.toggle("playing", e.isIntersecting);
-  }, {root:$("intro"), threshold:0.4});
-  _demoObserver.observe(demo);
-}
 function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); refreshExportReminder(); }
 $("introStart").onclick=dismissIntro;
-$("introStartBottom").onclick=dismissIntro;              // closing CTA mirrors the hero start button
-$("introInstall").onclick=()=>$("installBtn").click();   // reuse existing install flow (prompt / iOS help)
 $("aboutBtn").onclick=()=>showIntro();
 
 /* ============================================================
@@ -399,26 +383,61 @@ $("aboutBtn").onclick=()=>showIntro();
    ============================================================ */
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
               (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
-                     window.navigator.standalone===true;
+// Live check — display-mode can flip while the page is open (e.g. user installs
+// then opens the standalone window), so don't cache it.
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         window.navigator.standalone===true;
+}
 let deferredPrompt=null;
+let relatedAppInstalled=false;   // set async via getInstalledRelatedApps()
 
-window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e;
-  if(!isStandalone) $("installBtn").classList.add("show"); });
-window.addEventListener("appinstalled",()=>{ deferredPrompt=null;
-  $("installBtn").classList.remove("show"); toast("Installiert — viel Spaß 🎉"); });
+/* Single source of truth for the install control's visibility.
+   Hidden (and the "✓ Installiert" pill shown) once the app is installed —
+   detected via standalone display-mode, navigator.standalone, OR a matching
+   installed related app. Otherwise the button is shown when we can actually
+   offer an install: a captured beforeinstallprompt (Chrome/Edge) or iOS, where
+   install is manual and we surface step-by-step help instead. */
+function installed(){ return isStandalone() || relatedAppInstalled; }
+function refreshInstallBtn(){
+  const btn=$("installBtn"), pill=$("installedPill");
+  if(installed()){
+    btn.classList.remove("show");
+    pill.hidden=false;
+    return;
+  }
+  pill.hidden=true;
+  const canOffer = !!deferredPrompt || isIOS;
+  btn.classList.toggle("show", canOffer);
+}
+
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; refreshInstallBtn(); });
+window.addEventListener("appinstalled",()=>{ deferredPrompt=null; relatedAppInstalled=true;
+  refreshInstallBtn(); toast("Installiert — viel Spaß 🎉"); });
+// If the user installs and the window switches to standalone while open, re-evaluate.
+window.matchMedia("(display-mode: standalone)").addEventListener?.("change", refreshInstallBtn);
 
 $("installBtn").onclick=async()=>{
   if(deferredPrompt){
     deferredPrompt.prompt();
     const {outcome}=await deferredPrompt.userChoice;
     deferredPrompt=null;
-    if(outcome==="accepted") $("installBtn").classList.remove("show");
+    if(outcome==="accepted") relatedAppInstalled=true;
+    refreshInstallBtn();
     return;
   }
   openInstallHelp();                       // iOS / browsers without the prompt API
 };
 $("installClose").onclick=()=>close("installScrim");
+
+/* Some browsers (Android Chrome with a `related_applications`/scope match, and
+   notably catches the "already installed" case where beforeinstallprompt never
+   fires) expose installed PWAs here. Best-effort, async, then re-evaluate. */
+if(navigator.getInstalledRelatedApps){
+  navigator.getInstalledRelatedApps()
+    .then(apps=>{ if(apps && apps.length){ relatedAppInstalled=true; refreshInstallBtn(); } })
+    .catch(()=>{});
+}
 
 function openInstallHelp(){
   const ua=navigator.userAgent, isFirefox=/firefox/i.test(ua);
@@ -437,7 +456,7 @@ function openInstallHelp(){
     $("installTitle").textContent="Installieren";
     steps=['Klick in der Adressleiste auf das <b>Installieren-Symbol</b> (↗ bzw. Monitor mit Pfeil)',
            'Alternativ Browser-<b>Menü</b> (⋮) → <b>„App installieren"</b>',
-           'Bestätigen — TimeLog läuft danach offline im eigenen Fenster.'];
+           'Bestätigen — KIDEON time läuft danach offline im eigenen Fenster.'];
   }
   $("installBody").innerHTML='<ul class="ioslist">'+steps.map(s=>"<li>"+s+"</li>").join("")+'</ul>';
   openScrim("installScrim");
@@ -513,7 +532,7 @@ function refreshNotifyBtn(){
 }
 
 /* ---------- notifications-off nudge ----------
-   Reminds the user TimeLog can only ping them when OS notifications are on.
+   Reminds the user KIDEON time can only ping them when OS notifications are on.
    Shown once until dismissed; vanishes on its own once notifications are granted. */
 function notifyGranted(){
   return state.settings.notifyOn && ("Notification" in window) && Notification.permission==="granted";
@@ -588,8 +607,9 @@ function boot(){
   setInterval(recordBeat,60000);      // heartbeat every ~60s while visible
   scheduleTick();
 
-  // iOS has no beforeinstallprompt — surface the install help button manually
-  if(isIOS && !isStandalone) $("installBtn").classList.add("show");
+  // Set the install control's initial state (shows on iOS / once a prompt is
+  // captured; hidden + "✓ Installiert" pill when already installed).
+  refreshInstallBtn();
 
   // manifest shortcuts: ?action=log | export
   const action=new URLSearchParams(location.search).get("action");
