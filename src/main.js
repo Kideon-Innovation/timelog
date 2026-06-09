@@ -8,654 +8,57 @@
 // Modules are always strict mode, so the explicit "use strict" is dropped.
 import './style.css';
 import {
-  startOfDay, addDays, iso, hhmm, sameDay,
-  minOfDay, minLabel, blockDurMin, fmtDur, esc,
+  startOfDay, addDays, iso, hhmm,
+  blockDurMin, fmtDur,
   floorSlot as floorSlotMin, nextBoundary as nextBoundaryMin,
 } from './time.js';
+import {
+  state, save,
+  INTERVALS, PX_PER_MIN, DOW,
+  getSlotMin, setSlotMin, getAnchor, setAnchor,
+  colsForViewport, getDayCols, setDayCols,
+} from './state.js';
+import {
+  uid, bumpRecent, clearRange,
+  beat, gapSlots,
+} from './blocks.js';
+import { $ } from './ui/dom.js';
+import { toast, notify, beep } from './ui/notify.js';
+import {
+  initCalendar, render, renderHeaderClock,
+  updateNowLine, updateCountdown, scrollToNow,
+} from './ui/calendar.js';
+import {
+  openScrim, closeScrim, close, openScrims,
+  openEdit, openLogNow, openPing,
+} from './ui/dialogs.js';
+import { attachDrag } from './ui/drag.js';
 
 // Thin wrappers so the rest of the app keeps calling floorSlot(d) /
-// nextBoundary(d) unchanged; they supply the active SLOT_MIN to the pure,
+// nextBoundary(d) unchanged; they supply the active block size to the pure,
 // parameterised implementations in time.js.
-const floorSlot = (d) => floorSlotMin(d, SLOT_MIN);
-const nextBoundary = (d) => nextBoundaryMin(d, SLOT_MIN);
+const floorSlot = (d) => floorSlotMin(d, getSlotMin());
+const nextBoundary = (d) => nextBoundaryMin(d, getSlotMin());
 
 /* ============================================================
-   TimeLog — single-file passive time tracker.  MIT License.
+   TimeLog — passive time tracker.  MIT License.
+   State + config live in state.js; pure time helpers in time.js.
    ============================================================ */
-
-const KEY = "timelog.v1";
-const INTERVALS = [60,30,20,15,10,6];   // = 60 / n  (n = 1,2,3,4,6,10)
-let SLOT_MIN = 15;                       // active block size, from settings
-function colsForViewport(){ return window.matchMedia("(max-width:760px)").matches ? 1 : 3; }
-let DAY_COLS = colsForViewport();        // 3 on desktop, 1 on phones
-const CATCHUP_CAP_MS = 2 * 60 * 60 * 1000;   // only ask back ~2h
-/* Calm, Kideon-harmonious block hues — mid-tone, readable on off-white and navy. */
-const PALETTE = ["#c49a6c","#5f8f8c","#c0766a","#6b86b0","#a07fa6",
-                 "#8aa173","#c2935a","#5b9aa0","#d0a85c","#9488c0","#c98bab","#79a3c4"];
-const HOUR_PX = 116, PX_PER_MIN = HOUR_PX/60;
-
-/* ---------- state ---------- */
-let state = load();
-SLOT_MIN = INTERVALS.includes(state.settings.intervalMin) ? state.settings.intervalMin : 15;
-let anchor = startOfDay(new Date());   // left-most visible day
-
-function load(){
-  try{
-    const s = JSON.parse(localStorage.getItem(KEY));
-    if(s && s.blocks) return Object.assign({blocks:[],recentLabels:[],settings:{}}, s,
-      {settings:Object.assign({intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}, s.settings||{})});
-  }catch(e){}
-  return {blocks:[], recentLabels:[], settings:{intervalMin:SLOT_MIN,soundOn:true,notifyOn:false,introSeen:false,notifyNudgeDismissed:false,exportReminderDay:"",exportNotifyDay:"",theme:"light"}};
-}
-function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
-
-/* ---------- time helpers ---------- */
-const DOW=["So","Mo","Di","Mi","Do","Fr","Sa"], MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
-
-/* ---------- colors ---------- */
-function colorFor(label){
-  let h=0; for(let i=0;i<label.length;i++) h=(h*31+label.charCodeAt(i))>>>0;
-  return PALETTE[h%PALETTE.length];
-}
-function tint(hex){ return hex+"3a"; }   // fill alpha
-
-/* ---------- block ops ---------- */
-function uid(){ return "b"+Math.floor(performance.now()*1000).toString(36)+Object.keys(state.blocks).length; }
-function blockAt(slotStart){
-  const t=slotStart.getTime();
-  return state.blocks.find(b=>new Date(b.start).getTime()===t);
-}
-function setBlock(slotStart,label){
-  label=label.trim();
-  const s=new Date(slotStart), e=new Date(s.getTime()+SLOT_MIN*60000);
-  const ex=blockAt(s);
-  if(!label){ if(ex) state.blocks=state.blocks.filter(b=>b!==ex); }
-  else if(ex){ ex.label=label; }
-  else state.blocks.push({id:uid(),start:iso(s),end:iso(e),label});
-  if(label) bumpRecent(label);
-  save();
-}
-function bumpRecent(label){
-  state.recentLabels = [label, ...state.recentLabels.filter(l=>l!==label)].slice(0,12);
-}
-function blocksInRange(s,e){
-  const S=s.getTime(),E=e.getTime();
-  return state.blocks.filter(b=>new Date(b.start).getTime()<E && new Date(b.end).getTime()>S);
-}
-/* remove everything inside [s,e), clipping blocks that straddle the edges */
-function clearRange(s,e){
-  const S=s.getTime(),E=e.getTime(), keep=[];
-  for(const b of state.blocks){
-    const bs=new Date(b.start).getTime(), be=new Date(b.end).getTime();
-    if(be<=S||bs>=E){ keep.push(b); continue; }              // no overlap
-    if(bs<S) keep.push({...b,id:uid(),end:iso(new Date(S))}); // left remainder
-    if(be>E) keep.push({...b,id:uid(),start:iso(new Date(E))}); // right remainder
-  }
-  state.blocks=keep;
-}
-/* paint a label across [s,e) as SLOT_MIN blocks, overwriting whatever is there */
-function fillRange(s,e,label){
-  clearRange(s,e);
-  label=label.trim();
-  if(label){
-    for(let t=new Date(s); t.getTime()<e.getTime(); t=new Date(t.getTime()+SLOT_MIN*60000)){
-      const end=new Date(Math.min(t.getTime()+SLOT_MIN*60000, e.getTime()));
-      state.blocks.push({id:uid(),start:iso(t),end:iso(end),label});
-    }
-    bumpRecent(label);
-  }
-  save();
-}
-function lastLabel(){
-  if(!state.blocks.length) return state.recentLabels[0]||"";
-  return [...state.blocks].sort((a,b)=>new Date(b.start)-new Date(a.start))[0].label;
-}
 
 /* ============================================================
-   HEARTBEAT — passive "machine was alive" log.
-   While the tab is visible we stamp the current slot every ~60s.
-   Stored as a flat array of slot-ISO strings under its own key
-   (kept out of timelog.v1 so it never lands in the Excel export).
-   Pruned to the last HEARTBEAT_DAYS days to stay tiny.
+   UI LAYER (all extracted under src/ui/)
+   The calendar render cluster (render / renderHeaderClock / renderRange /
+   renderLegend / renderCalendar + scrollToNow / updateNowLine / updateCountdown)
+   lives in src/ui/calendar.js; the ping/catch-up/range-entry/edit dialogs plus
+   the scrim/modal a11y machinery in src/ui/dialogs.js; the toast/notify/beep
+   feedback primitives in src/ui/notify.js; and drag-to-select in src/ui/drag.js.
+   They are all imported above. renderCalendar needs two behaviours from the
+   higher UI layer — openEdit (dialogs.js) and attachDrag (drag.js) — which are
+   handed to it once via initCalendar (see the import block + boot()); this DI
+   keeps calendar.js free of an import cycle (calendar -> drag -> dialogs ->
+   calendar). dialogs.js pulls `toast` from notify.js directly. What remains in
+   main.js is boot/wiring, the export/import flows, and the timer/heartbeat loop.
    ============================================================ */
-const HEARTBEAT_KEY = "timelog.heartbeat.v1";
-const HEARTBEAT_DAYS = 7;
-let heartbeats = loadHeartbeats();
-function loadHeartbeats(){
-  try{ const a=JSON.parse(localStorage.getItem(HEARTBEAT_KEY)); if(Array.isArray(a)) return new Set(a); }catch(e){}
-  return new Set();
-}
-function saveHeartbeats(){ localStorage.setItem(HEARTBEAT_KEY, JSON.stringify([...heartbeats])); }
-function pruneHeartbeats(){
-  const cutoff=Date.now()-HEARTBEAT_DAYS*86400000; let changed=false;
-  for(const s of heartbeats){ if(new Date(s).getTime()<cutoff){ heartbeats.delete(s); changed=true; } }
-  return changed;
-}
-/* stamp the current slot as alive; returns true if a new slot was added */
-function beat(){
-  const key=iso(floorSlot(new Date()));
-  const had=heartbeats.has(key);
-  heartbeats.add(key);
-  const pruned=pruneHeartbeats();
-  if(!had||pruned) saveHeartbeats();
-  return !had;
-}
-
-/* gaps: unfilled past slots within CATCHUP_CAP_MS, oldest-first */
-function gapSlots(){
-  // Erstnutzer ohne jegliche Tracking-Historie haben keine echte Lücke zum
-  // Nachtragen — der Backfill-Dialog soll erst erscheinen, sobald schon mind.
-  // ein Eintrag existiert. Ohne diesen Guard würde der gesamte 2h-Zeitraum als
-  // Lücke gewertet und ein Neunutzer mit dem Catchup-Dialog konfrontiert.
-  if(!state.blocks.length) return [];
-  const now=new Date(), out=[];
-  let s=floorSlot(new Date(now.getTime()-CATCHUP_CAP_MS));
-  const liveEnd=floorSlot(now);   // current (ongoing) slot start = not yet ended
-  let lastEnd=null;
-  for(const b of state.blocks){
-    const e=new Date(b.end);
-    if(e.getTime()<=liveEnd.getTime() && (lastEnd===null || e.getTime()>lastEnd)) lastEnd=e.getTime();
-  }
-  if(lastEnd!==null){
-    const fe=floorSlot(new Date(lastEnd));
-    if(fe.getTime()>s.getTime()) s=fe;
-  }
-  for(let t=s; t.getTime()<liveEnd.getTime(); t=new Date(t.getTime()+SLOT_MIN*60000)){
-    if(!blockAt(t)) out.push(new Date(t));
-  }
-  return out;
-}
-
-/* ============================================================
-   RENDER
-   ============================================================ */
-const $=id=>document.getElementById(id);
-
-function render(){
-  renderHeaderClock();
-  renderRange();
-  renderLegend();
-  renderCalendar();
-}
-
-function renderHeaderClock(){
-  const n=new Date();
-  $("clock").textContent=hhmm(n);
-  $("clockDate").textContent=DOW[n.getDay()]+", "+n.getDate()+". "+MON[n.getMonth()];
-}
-
-function renderRange(){
-  const a=anchor, b=addDays(anchor,DAY_COLS-1);
-  if(DAY_COLS===1){
-    // Single-day view (mobile): show one dated label with weekday — a dash range
-    // ("8. – 8. Jun") reads as a bug.
-    $("rangeLabel").innerHTML = DOW[a.getDay()]+", "+a.getDate()+". "+MON[a.getMonth()]+" "+a.getFullYear();
-  } else {
-    $("rangeLabel").innerHTML = a.getDate()+". "+(a.getMonth()!=b.getMonth()?MON[a.getMonth()]+" ":"")+
-      "<em>–</em> "+b.getDate()+". "+MON[b.getMonth()]+" "+b.getFullYear();
-  }
-  $("datePick").value = iso(a).slice(0,10);
-}
-
-function renderLegend(){
-  const days=[...Array(DAY_COLS)].map((_,i)=>addDays(anchor,i));
-  const labels=new Set();
-  state.blocks.forEach(b=>{ const d=new Date(b.start); if(days.some(x=>sameDay(x,d))) labels.add(b.label); });
-  const el=$("legend"); el.innerHTML="";
-  [...labels].slice(0,8).forEach(l=>{
-    const c=document.createElement("span"); c.className="chip";
-    c.innerHTML=`<span class="sw" style="background:${colorFor(l)}"></span>${l}`;
-    el.appendChild(c);
-  });
-}
-
-function renderCalendar(){
-  const cal=$("cal"); cal.innerHTML="";
-  const totalH=24*HOUR_PX;
-  const now=new Date();
-  const gutPx = DAY_COLS===1 ? 44 : 60;
-  cal.style.gridTemplateColumns = gutPx+"px repeat("+DAY_COLS+",1fr)";
-
-  // gutter
-  const gut=document.createElement("div"); gut.className="gutter"; gut.style.height=totalH+"px";
-  const gh=document.createElement("div"); gh.className="col-head"; gh.style.visibility="hidden"; gh.textContent=".";
-  gut.appendChild(gh);
-  for(let h=1;h<24;h++){
-    const lb=document.createElement("div"); lb.className="hr-label";
-    lb.style.top=(h*HOUR_PX)+"px"; lb.textContent=String(h).padStart(2,"0")+":00";
-    gut.appendChild(lb);
-  }
-  cal.appendChild(gut);
-
-  for(let i=0;i<DAY_COLS;i++){
-    const day=addDays(anchor,i), isToday=sameDay(day,now);
-    const col=document.createElement("div"); col.className="daycol"+(isToday?" today":"");
-    col.style.height=totalH+"px";
-
-    const head=document.createElement("div");
-    head.className="col-head"+(isToday?" today":"");
-    const dayBlocks=state.blocks.filter(b=>sameDay(new Date(b.start),day));
-    const mins=dayBlocks.reduce((a,b)=>a+blockDurMin(b),0);
-    head.innerHTML=`<div class="dow">${DOW[day.getDay()]}</div><div class="dnum">${day.getDate()}</div>`+
-      `<div class="tot">${mins?fmtDur(mins):"–"}</div>`;
-    col.appendChild(head);
-
-    // hour lines
-    for(let h=0;h<24;h++){
-      const ln=document.createElement("div"); ln.className="hr-line"+(h%6===0?" major":"");
-      ln.style.top=(h*HOUR_PX)+"px"; col.appendChild(ln);
-    }
-
-    // heartbeat rail: faint marks where the machine was alive that day
-    beatRuns(day).forEach(run=>{
-      const range=minLabel(run.startMin)+"–"+minLabel(run.endMin);
-      const b=document.createElement("div"); b.className="beat";
-      b.style.top=(run.startMin*PX_PER_MIN)+"px";
-      b.style.height=Math.max(2,(run.endMin-run.startMin)*PX_PER_MIN-1)+"px";
-      b.setAttribute("role","img");
-      b.tabIndex=0; // keyboard-focusable so the custom tooltip shows on focus
-      b.setAttribute("aria-label","Aktivitätsspur "+range
-        +": in dieser Zeit war TimeLog geöffnet. So siehst du, welche Lücken echte Pausen sind und was du noch nachtragen kannst.");
-      // custom instant tooltip — NO native title (which has a ~1s browser delay)
-      const tip=document.createElement("div"); tip.className="beat-tip";
-      tip.setAttribute("aria-hidden","true");
-      const th=document.createElement("span"); th.className="beat-tip-h";
-      th.textContent="Aktivitätsspur · "+range;
-      tip.appendChild(th);
-      tip.appendChild(document.createTextNode(
-        "In dieser Zeit war TimeLog geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät."));
-      b.appendChild(tip);
-      col.appendChild(b);
-    });
-
-    // current-slot highlight + now line
-    if(isToday){
-      const ss=floorSlot(now);
-      const ns=document.createElement("div"); ns.className="nowslot";
-      ns.style.top=(minOfDay(ss)*PX_PER_MIN)+"px"; ns.style.height=(SLOT_MIN*PX_PER_MIN)+"px";
-      col.appendChild(ns);
-      const nl=document.createElement("div"); nl.className="nowline";
-      nl.style.top=(minOfDay(now)*PX_PER_MIN)+"px"; col.appendChild(nl);
-    }
-
-    // blocks — contiguous same-label slots merge into one long block
-    mergeRuns(dayBlocks).forEach(seg=>{
-      const s=new Date(seg.start), e=new Date(seg.end);
-      const mins=(e-s)/60000;
-      const el=document.createElement("div"); el.className="block";
-      const c=colorFor(seg.label);
-      el.style.setProperty("--bc",c); el.style.setProperty("--bg2",tint(c));
-      el.style.top=(minOfDay(s)*PX_PER_MIN)+"px"; el.style.height=Math.max(11,mins*PX_PER_MIN-3)+"px";
-      const range = seg.blocks.length>1 ? hhmm(s)+"–"+hhmm(e)+" · "+fmtDur(mins) : hhmm(s);
-      el.innerHTML=`<div class="lbl">${esc(seg.label)}</div><div class="tm">${range}</div>`;
-      el.title=seg.label+"  ("+hhmm(s)+"–"+hhmm(e)+", "+fmtDur(mins)+")";
-      el.onclick=()=>openEdit(seg);
-      col.appendChild(el);
-    });
-
-    if(!dayBlocks.length){
-      // Empty day → onboarding hint. Today gets a slightly warmer welcome so a
-      // new user landing on a blank "today" isn't left without guidance.
-      const eh=document.createElement("div"); eh.className="empty-hint";
-      eh.innerHTML = isToday
-        ? `<div class="em">Noch nichts erfasst</div><div class="empty-sub">ziehen zum Eintragen · oder „+ Jetzt eintragen"</div>`
-        : `<div class="em">ziehen zum Eintragen</div>`;
-      col.appendChild(eh);
-    }
-    attachDrag(col,day);
-    cal.appendChild(col);
-  }
-}
-function mergeRuns(blocks){
-  const sorted=[...blocks].sort((a,b)=>new Date(a.start)-new Date(b.start));
-  const segs=[];
-  for(const b of sorted){
-    const last=segs[segs.length-1];
-    if(last && last.label===b.label && new Date(last.end).getTime()===new Date(b.start).getTime()){
-      last.end=b.end; last.blocks.push(b);
-    } else segs.push({start:b.start,end:b.end,label:b.label,blocks:[b]});
-  }
-  return segs;
-}
-/* heartbeat slots for one day → merged [startMin,endMin) runs.
-   Each beat covers SLOT_MIN minutes; touching/overlapping beats merge. */
-function beatRuns(day){
-  const mins=[];
-  for(const s of heartbeats){ const d=new Date(s); if(sameDay(d,day)) mins.push(minOfDay(d)); }
-  if(!mins.length) return [];
-  mins.sort((a,b)=>a-b);
-  const runs=[];
-  for(const m of mins){
-    const last=runs[runs.length-1];
-    if(last && m<=last.endMin) last.endMin=Math.max(last.endMin,m+SLOT_MIN);
-    else runs.push({startMin:m,endMin:m+SLOT_MIN});
-  }
-  return runs;
-}
-
-/* ============================================================
-   PING / CATCH-UP
-   ============================================================ */
-function recentChips(onPick, current){
-  const wrap=document.createElement("div"); wrap.className="chips";
-  const last=lastLabel();
-  if(last){
-    const b=document.createElement("button"); b.className="chip-b same";
-    b.textContent="↻ Weiter wie eben — "+last;
-    b.onclick=()=>onPick(last); wrap.appendChild(b);
-  }
-  state.recentLabels.filter(l=>l!==last).slice(0,8).forEach(l=>{
-    const b=document.createElement("button"); b.className="chip-b";
-    b.style.setProperty("--bc",colorFor(l)); b.textContent=l;
-    b.onclick=()=>onPick(l); wrap.appendChild(b);
-  });
-  return wrap;
-}
-
-function openPing(triggeredByTimer){
-  const gaps=gapSlots();
-  if(!gaps.length){ if(!triggeredByTimer) openLogNow(); return; }
-  if(gaps.length===1) openSinglePing(gaps[0]);
-  else openCatchup(gaps);
-  openScrim("pingScrim");
-}
-
-function openSinglePing(slot){
-  const end=new Date(slot.getTime()+SLOT_MIN*60000);
-  $("pingKick").textContent="15-MINUTEN-PING";
-  $("pingTitle").textContent="Woran hast du gearbeitet?";
-  $("pingSub").textContent=hhmm(slot)+" – "+hhmm(end)+" · "+DOW[slot.getDay()]+" "+slot.getDate()+". "+MON[slot.getMonth()];
-  const body=$("pingBody"); body.innerHTML="";
-  const inp=document.createElement("input");
-  inp.className="txt"; inp.setAttribute("autocomplete","off");
-  inp.placeholder="Stichwort … z. B. Meeting, Doku, Telefonat";
-  body.appendChild(inp);
-  const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
-  body.appendChild(recentChips(v=>commit(v),null));
-  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") commit(inp.value); });
-
-  const foot=$("pingFoot"); foot.innerHTML="";
-  const skip=document.createElement("button"); skip.className="btn ghost";
-  skip.innerHTML="Nicht am PC / leer lassen"; skip.onclick=()=>commit("");
-  const sp=document.createElement("div"); sp.className="spacer";
-  const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Eintragen";
-  ok.onclick=()=>commit(inp.value);
-  foot.append(skip,sp,ok);
-  setTimeout(()=>inp.focus(),60);
-}
-
-function openCatchup(gaps){
-  $("pingKick").textContent="NACHZUTRAGEN · "+gaps.length+(gaps.length===1?" EINTRAG":" EINTRÄGE");
-  $("pingTitle").textContent="Was war seit eben los?";
-  $("pingSub").textContent="Lücken der letzten 2 Stunden. Leer lassen ist ok — du warst evtl. nicht am PC.";
-  const body=$("pingBody"); body.innerHTML="";
-  const rows=gaps.map(slot=>{
-    const end=new Date(slot.getTime()+SLOT_MIN*60000);
-    const row=document.createElement("div"); row.className="gaprow";
-    const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
-    const inp=document.createElement("input"); inp.setAttribute("autocomplete","off");
-    inp.placeholder="Stichwort …";
-    const range="("+hhmm(slot)+"–"+hhmm(end)+")";
-    const skip=document.createElement("button"); skip.type="button"; skip.className="skip";
-    // Reversible skip: clicking toggles the row between active and "leer gelassen".
-    // Skipping remembers any text so it can be restored on undo.
-    let stash="";
-    const setSkipped=on=>{
-      if(on){ stash=inp.value; inp.value=""; inp.placeholder="leer gelassen"; }
-      else { inp.value=stash; stash=""; inp.placeholder="Stichwort …"; }
-      row.classList.toggle("done",on);
-      inp.disabled=on;
-      skip.textContent=on?"↩":"✕";
-      skip.title=on?"wieder eintragen "+range:"leer lassen "+range;
-      skip.setAttribute("aria-label",(on?"Diesen Eintrag wieder aktivieren ":"Diesen Eintrag leer lassen ")+range);
-      skip.setAttribute("aria-pressed",on?"true":"false");
-    };
-    setSkipped(false);
-    skip.onclick=()=>{ const willSkip=!row.classList.contains("done"); setSkipped(willSkip); if(!willSkip) inp.focus(); };
-    row.append(tg,inp,skip);
-    body.appendChild(row);
-    return {slot,inp,row};
-  });
-  rows[0].inp.focus();
-  // quick "all = X"
-  const quick=recentChips(v=>{ rows.forEach(r=>{ if(!r.row.classList.contains("done")) r.inp.value=v; }); },null);
-  quick.style.marginTop="14px"; body.appendChild(quick);
-
-  const foot=$("pingFoot"); foot.innerHTML="";
-  const skipAll=document.createElement("button"); skipAll.className="btn ghost";
-  skipAll.textContent="Alle leer lassen"; skipAll.onclick=()=>{ closePing(); };
-  const sp=document.createElement("div"); sp.className="spacer";
-  const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Speichern";
-  ok.onclick=()=>{ rows.forEach(r=>setBlock(r.slot,r.inp.value)); closePing(); render();
-    toast("Nachtrag gespeichert"); };
-  foot.append(skipAll,sp,ok);
-}
-
-/* ---------- drag-to-select (Pointer Events: mouse drag, touch long-press) ----------
-   Mouse/pen: press-drag selects immediately, like Google Calendar.
-   Touch: a plain tap quick-logs one slot; a long-press (~260ms) then drag
-   selects a range — so normal vertical scrolling of the calendar still works. */
-function attachDrag(col,day){
-  col.addEventListener("pointerdown",e=>{
-    if(e.button>0) return;                                    // ignore right/middle
-    if(e.target.closest(".block")||e.target.closest(".col-head")) return;
-    const rect=col.getBoundingClientRect();
-    const slotPx=SLOT_MIN*PX_PER_MIN, maxIdx=Math.floor(1440/SLOT_MIN)-1;
-    const idxAt=cy=>Math.max(0,Math.min(maxIdx,Math.floor((cy-rect.top)/slotPx)));
-    const startIdx=idxAt(e.clientY), startY=e.clientY, startX=e.clientX;
-    const touch=e.pointerType==="touch";
-    const slotTime=i=>{ const d=new Date(day); d.setMinutes(i*SLOT_MIN); return d; };
-    let selecting=false, holdTimer=null, box=null, lbl=null, tm=null;
-
-    const draw=cur=>{
-      const lo=Math.min(startIdx,cur),hi=Math.max(startIdx,cur);
-      box.style.top=(lo*slotPx)+"px"; box.style.height=((hi-lo+1)*slotPx)+"px";
-      tm.textContent=hhmm(slotTime(lo))+"–"+hhmm(slotTime(hi+1))+" · "+fmtDur((hi-lo+1)*SLOT_MIN);
-    };
-    const beginSel=()=>{
-      selecting=true; holdTimer=null;
-      box=document.createElement("div"); box.className="selbox";
-      lbl=document.createElement("span"); lbl.className="sl"; lbl.textContent="Eintragen…";
-      tm=document.createElement("span"); tm.className="st"; box.appendChild(lbl); box.appendChild(tm);
-      col.appendChild(box); document.body.classList.add("dragging");
-      col.style.touchAction="none";                          // stop scroll once selecting
-      try{ col.setPointerCapture(e.pointerId); }catch(_){}
-      if(touch && navigator.vibrate) navigator.vibrate(8);
-      draw(startIdx);
-    };
-    const cleanup=()=>{
-      document.removeEventListener("pointermove",move);
-      document.removeEventListener("pointerup",up);
-      document.removeEventListener("pointercancel",up);
-      if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
-      document.body.classList.remove("dragging");
-      col.style.touchAction="";
-      if(box){ box.remove(); box=null; }
-    };
-    const move=ev=>{
-      if(selecting){ ev.preventDefault(); draw(idxAt(ev.clientY)); return; }
-      if(holdTimer && (Math.abs(ev.clientY-startY)>10||Math.abs(ev.clientX-startX)>10)){
-        cleanup();                                            // moved before hold → it's a scroll
-      }
-    };
-    const up=ev=>{
-      const wasSelecting=selecting;
-      const moved=Math.abs(ev.clientY-startY)>10||Math.abs(ev.clientX-startX)>10;
-      cleanup();
-      if(wasSelecting){
-        const cur=idxAt(ev.clientY), lo=Math.min(startIdx,cur), hi=Math.max(startIdx,cur);
-        openRangeEntry(slotTime(lo),slotTime(hi+1));
-      } else if(touch && !moved){
-        openRangeEntry(slotTime(startIdx),slotTime(startIdx+1));  // tap = log this slot
-      }
-    };
-
-    document.addEventListener("pointermove",move,{passive:false});
-    document.addEventListener("pointerup",up);
-    document.addEventListener("pointercancel",up);
-    if(touch){ holdTimer=setTimeout(beginSel,260); }
-    else { beginSel(); e.preventDefault(); }
-  });
-}
-
-function openRangeEntry(s,e){
-  const mins=(e-s)/60000;
-  const existing=blocksInRange(s,e);
-  const existLabels=[...new Set(existing.map(b=>b.label))];
-  $("pingKick").textContent="ZEITRAUM EINTRAGEN";
-  $("pingTitle").textContent="Was läuft in diesem Block?";
-  $("pingSub").textContent=hhmm(s)+" – "+hhmm(e)+" · "+fmtDur(mins)+" · "+DOW[s.getDay()]+" "+s.getDate()+". "+MON[s.getMonth()];
-  const body=$("pingBody"); body.innerHTML="";
-  const inp=document.createElement("input"); inp.className="txt"; inp.setAttribute("autocomplete","off");
-  inp.placeholder="z. B. Meeting, Fokuszeit, Mittag …";
-  if(existLabels.length){ inp.value=existLabels.length===1?existLabels[0]:""; }
-  body.appendChild(inp);
-  if(existing.length){
-    const note=document.createElement("p"); note.className="muted"; note.style.marginTop="10px";
-    note.textContent="⚠ Überschreibt vorhandene Blöcke: "+existLabels.join(", ");
-    body.appendChild(note);
-  }
-  const commit=v=>{ fillRange(s,e,v); closePing(); render();
-    toast(v.trim()?("Eingetragen: "+v):"Bereich geleert"); };
-  body.appendChild(recentChips(v=>commit(v)));
-  inp.addEventListener("keydown",ev=>{ if(ev.key==="Enter") commit(inp.value); });
-  const foot=$("pingFoot"); foot.innerHTML="";
-  // delete: double-confirm when the range actually contains blocks
-  const del=document.createElement("button"); del.className="btn ghost";
-  if(existing.length){
-    del.classList.add("del"); del.textContent="Bereich löschen";
-    let armed=false;
-    del.onclick=()=>{ if(!armed){ armed=true; del.textContent="Wirklich löschen? ("+existing.length+")";
-      setTimeout(()=>{ armed=false; del.textContent="Bereich löschen"; },2500); }
-      else commit(""); };
-  } else { del.textContent="Bereich leeren"; del.onclick=()=>commit(""); }
-  const sp=document.createElement("div"); sp.className="spacer";
-  const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Eintragen"; ok.onclick=()=>commit(inp.value);
-  foot.append(del,sp,ok);
-  openScrim("pingScrim"); setTimeout(()=>inp.focus(),60);
-}
-
-function openLogNow(){
-  // manual: log the current (ongoing) slot
-  openSinglePing(floorSlot(new Date()));
-  openScrim("pingScrim");
-  $("pingKick").textContent="MANUELL EINTRAGEN";
-  $("pingTitle").textContent="Woran arbeitest du gerade?";
-}
-function closePing(){ closeScrim("pingScrim"); }
-
-/* ============================================================
-   EDIT BLOCK
-   ============================================================ */
-let editing=null, editRows=[];
-function openEdit(seg){
-  editing=seg;
-  const blocks=[...seg.blocks].sort((a,b)=>new Date(a.start)-new Date(b.start));
-  editing.blocks=blocks;
-  const s=new Date(seg.start),e=new Date(seg.end), mins=(e-s)/60000;
-  $("editTime").textContent=hhmm(s)+" – "+hhmm(e)+"  ·  "+DOW[s.getDay()]+" "+s.getDate()+". "+MON[s.getMonth()]+
-    (blocks.length>1?"  ·  "+fmtDur(mins):"");
-  const inp=$("editInput");
-  const allSame=blocks.every(b=>b.label===blocks[0].label);
-  inp.value=allSame?blocks[0].label:"";
-  const chips=$("editChips"); chips.innerHTML="";
-  state.recentLabels.slice(0,8).forEach(l=>{
-    const c=document.createElement("button"); c.className="chip-b"; c.style.setProperty("--bc",colorFor(l));
-    c.textContent=l; c.onclick=()=>{ inp.value=l; }; chips.appendChild(c);
-  });
-
-  // per-slot rows (only when the block spans more than one slot)
-  const slots=$("editSlots"); slots.innerHTML=""; editRows=[];
-  if(blocks.length>1){
-    $("editAll").style.display=""; $("editBulkHint").textContent="– setzt alle "+blocks.length+" Blöcke";
-    const lab=document.createElement("label"); lab.className="fl"; lab.textContent="Einzelne Blöcke"; slots.appendChild(lab);
-    blocks.forEach(b=>{
-      const bs=new Date(b.start),be=new Date(b.end);
-      const row=document.createElement("div"); row.className="gaprow";
-      const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(bs)+"–"+hhmm(be);
-      const ri=document.createElement("input"); ri.setAttribute("autocomplete","off"); ri.value=b.label;
-      const range="("+hhmm(bs)+"–"+hhmm(be)+")";
-      const x=document.createElement("button"); x.type="button"; x.className="skip";
-      // Reversible clear: toggle the block between active and "wird gelöscht".
-      let stash="";
-      const setCleared=on=>{
-        if(on){ stash=ri.value; ri.value=""; ri.placeholder="wird gelöscht"; }
-        else { ri.value=stash; stash=""; ri.placeholder=""; }
-        row.classList.toggle("done",on);
-        ri.disabled=on;
-        x.textContent=on?"↩":"✕";
-        x.title=on?"doch behalten "+range:"diesen Block löschen "+range;
-        x.setAttribute("aria-label",(on?"Diesen Block doch behalten ":"Diesen Block löschen ")+range);
-        x.setAttribute("aria-pressed",on?"true":"false");
-      };
-      setCleared(false);
-      x.onclick=()=>{ const willClear=!row.classList.contains("done"); setCleared(willClear); if(!willClear) ri.focus(); };
-      row.append(tg,ri,x); slots.appendChild(row);
-      editRows.push({start:b.start,input:ri,activate:()=>setCleared(false)});
-    });
-  } else { $("editAll").style.display="none"; $("editBulkHint").textContent=""; }
-
-  openScrim("editScrim"); setTimeout(()=>inp.focus(),60);
-}
-$("editAll").onclick=()=>{ const v=$("editInput").value; editRows.forEach(r=>{ r.activate(); r.input.value=v; }); };
-$("editSave").onclick=()=>{
-  if(editRows.length) editRows.forEach(r=>setBlock(new Date(r.start),r.input.value));
-  else setBlock(new Date(editing.blocks[0].start),$("editInput").value);
-  close("editScrim"); render();
-};
-$("editDel").onclick=()=>{ editing.blocks.forEach(b=>setBlock(new Date(b.start),""));
-  close("editScrim"); render(); toast(editing.blocks.length>1?"Block gelöscht ("+editing.blocks.length+" Einträge)":"Block gelöscht"); };
-$("editCancel").onclick=()=>close("editScrim");
-$("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("editSave").click(); });
-
-/* ============================================================
-   MODAL / DIALOG a11y: focus trap + inert background + focus restore.
-   All scrims open/close through openScrim/closeScrim so the behaviour is
-   identical everywhere. Visual/a11y only — does not change WHAT a dialog does.
-   ============================================================ */
-let _modalOpener=null;
-function openScrims(){ return [...document.querySelectorAll(".scrim.show")]; }
-function focusables(container){
-  return [...container.querySelectorAll(
-    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
-    .filter(el=>el.offsetParent!==null || el===document.activeElement);
-}
-function openScrim(id){
-  const scrim=$(id); if(scrim.classList.contains("show")) return;
-  // remember who opened it so we can restore focus on close
-  if(!openScrims().length) _modalOpener=document.activeElement;
-  scrim.classList.add("show");
-  // background out of the a11y tree + tab order while a modal is up
-  const app=$("app"); app.setAttribute("aria-hidden","true");
-  try{ app.inert=true; }catch(e){}
-}
-function closeScrim(id){
-  const scrim=$(id); if(!scrim) return;
-  scrim.classList.remove("show");
-  if(!openScrims().length){
-    const app=$("app"); app.removeAttribute("aria-hidden");
-    try{ app.inert=false; }catch(e){}
-    // Restore focus to the opener. If it's gone/hidden (e.g. a menu item that
-    // closed with the menu), fall back to the menu button so focus stays
-    // somewhere visible and sensible instead of landing on <body>.
-    let target=_modalOpener;
-    if(!target || target.offsetParent===null || typeof target.focus!=="function") target=$("menuBtn");
-    if(target){ try{ target.focus(); }catch(e){} }
-    _modalOpener=null;
-  }
-}
-function close(id){ closeScrim(id); }
-// Trap Tab inside the top-most open dialog.
-document.addEventListener("keydown",e=>{
-  if(e.key!=="Tab") return;
-  const open=openScrims(); if(!open.length) return;
-  const modal=open[open.length-1].querySelector(".modal")||open[open.length-1];
-  const f=focusables(modal); if(!f.length){ e.preventDefault(); return; }
-  const first=f[0], last=f[f.length-1], a=document.activeElement;
-  if(!modal.contains(a)){ e.preventDefault(); first.focus(); return; }
-  if(e.shiftKey && a===first){ e.preventDefault(); last.focus(); }
-  else if(!e.shiftKey && a===last){ e.preventDefault(); first.focus(); }
-});
 
 /* ============================================================
    EXPORT (xlsx via SheetJS)
@@ -666,9 +69,29 @@ function exportRows(){
   return [...state.blocks].sort((a,b)=>new Date(a.start)-new Date(b.start))
     .filter(b=>{ const s=new Date(b.start); return (!from||s>=from)&&(!to||s<=to); });
 }
-function updateExpCount(){ $("expCount").textContent=exportRows().length+" Blöcke im Zeitraum"; }
+// Shared wording for an inverted export range, used by both the inline #expCount
+// hint and the Export/DATEV toasts so the user sees ONE consistent message.
+const INVERTED_RANGE_MSG="„Von“ liegt nach „Bis“ — bitte Zeitraum prüfen.";
+function rangeInverted(){
+  const fromV=$("expFrom").value, toV=$("expTo").value;
+  return !!(fromV && toV && fromV>toV);
+}
+function updateExpCount(){
+  const el=$("expCount");
+  if(rangeInverted()){
+    // Inverted range silently yields 0 — point the user at the swapped dates.
+    el.textContent=INVERTED_RANGE_MSG;
+    el.classList.add("warn");
+    return;
+  }
+  el.classList.remove("warn");
+  el.textContent=exportRows().length+" Blöcke im Zeitraum";
+}
 function doExport(){
   if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
+  // An inverted range yields 0 rows for a non-obvious reason; surface the same
+  // hint the inline counter shows instead of the generic "Nichts zu exportieren".
+  if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const rows=exportRows();
   if(!rows.length){ toast("Nichts zu exportieren"); return; }
   const data=[["Datum","Wochentag","Start","Ende","Dauer (min)","Tätigkeit"]];
@@ -698,6 +121,9 @@ function fmtHours(min){ return (min/60).toFixed(2).replace(".",","); }
 // exportRows() ist bereits nach start sortiert → Tagesreihenfolge bleibt erhalten.
 function datevLohnRows(){
   const byDay=new Map();
+  // Bucket each block under its START day. A midnight-crossing block (e.g. the
+  // 23:45→00:00 last slot) counts entirely under the day it began on — by design,
+  // consistent with exportRows()'s start-day sorting. Total minutes are unaffected.
   exportRows().forEach(b=>{ const key=b.start.slice(0,10);
     byDay.set(key,(byDay.get(key)||0)+blockDurMin(b)); });
   return [...byDay.entries()].map(([key,min])=>
@@ -707,6 +133,8 @@ function doExportDatev(){
   const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
   saveDatevCfg({pnr,la});
   if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
+  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
+  if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const days=datevLohnRows();
   if(!days.length){ toast("Nichts zu exportieren"); return; }
   const lines=["Personalnummer;Datum;Lohnart;Stunden"];
@@ -772,15 +200,29 @@ function applyImport(rows){
     const d=parseDE(r[ci.date]), s=parseHM(r[ci.start]), e=parseHM(r[ci.end]);
     const label=String(r[ci.label]||"").trim();
     if(!d||!s||!e||!label){ bad++; continue; }
-    const start=new Date(d.y,d.m-1,d.d,s.h,s.min,0,0);
+    let start=new Date(d.y,d.m-1,d.d,s.h,s.min,0,0);
     let end=new Date(d.y,d.m-1,d.d,e.h,e.min,0,0);
     if(end.getTime()<=start.getTime()) end=new Date(end.getTime()+86400000); // 23:xx–00:00 = last slot of day
+    // Snap imported boundaries to the active slot grid so imports share the
+    // app's own data model (in-app entries are always slot-aligned). Floor the
+    // start, ceil the end: a row finer than one slot (e.g. a hand-crafted 3-min
+    // block, or boundaries off the grid) becomes a full, readable slot instead
+    // of a sub-slot sliver that hits the calendar's min-height clamp and smears
+    // over its neighbour. Already-aligned rows (our own export) are unchanged:
+    // floor/ceil of an on-grid boundary is itself.
+    start=floorSlot(start);
+    end=nextBoundary(new Date(end.getTime()-1)); // ceil to slot grid (on-grid end stays put)
+    if(end.getTime()<=start.getTime()){ bad++; continue; } // zero-length after snap
     imported.push({start:iso(start),end:iso(end),label}); ok++;
   }
   if(!ok){ toast("Keine gültigen Zeilen gefunden"); return; }
   for(const b of imported){
-    const t=new Date(b.start).getTime();
-    state.blocks=state.blocks.filter(x=>new Date(x.start).getTime()!==t); // slot-overwrite
+    // Replace whatever the imported block covers across its FULL span, the same
+    // way in-app drag does (fillRange→clearRange). A plain start-only overwrite
+    // left finer pre-existing blocks behind when a coarse row (e.g. 09:00–11:00)
+    // landed over them, producing overlapping/stacked blocks and a double-counted
+    // day total. clearRange clips straddling blocks at the edges.
+    clearRange(new Date(b.start), new Date(b.end));
     state.blocks.push({id:uid(),start:b.start,end:b.end,label:b.label});
     bumpRecent(b.label);
   }
@@ -807,48 +249,9 @@ function onBoundary(){
   refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
 }
+// tickClock glues the per-second header refresh; its three constituents
+// (renderHeaderClock / updateCountdown / updateNowLine) live in ui/calendar.js.
 function tickClock(){ renderHeaderClock(); updateCountdown(); updateNowLine(); }
-function updateNowLine(){
-  // cheap: only reposition existing now elements
-  const now=new Date();
-  document.querySelectorAll(".nowline").forEach(n=>n.style.top=(minOfDay(now)*PX_PER_MIN)+"px");
-}
-function updateCountdown(){
-  const now=Date.now(), nb=nextBoundary(new Date()).getTime();
-  const remain=Math.max(0,nb-now), total=SLOT_MIN*60000;
-  const mm=Math.floor(remain/60000), ss=Math.floor(remain%60000/1000);
-  $("cdTime").textContent=String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
-  $("ringTxt").textContent=mm;
-  const frac=remain/total, circ=2*Math.PI*16;
-  const prog=$("ringProg"); prog.setAttribute("stroke-dasharray",circ.toFixed(1));
-  prog.setAttribute("stroke-dashoffset",(circ*(1-frac)).toFixed(1));
-}
-
-/* ---------- sound ---------- */
-let actx=null;
-function beep(){
-  try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==="suspended") actx.resume();
-    const t=actx.currentTime;
-    [880,1320].forEach((f,i)=>{
-      const o=actx.createOscillator(),g=actx.createGain();
-      o.type="sine"; o.frequency.value=f;
-      o.connect(g); g.connect(actx.destination);
-      const s=t+i*0.18; g.gain.setValueAtTime(0,s);
-      g.gain.linearRampToValueAtTime(0.18,s+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,s+0.16);
-      o.start(s); o.stop(s+0.17);
-    });
-  }catch(e){}
-}
-
-/* ---------- notification ---------- */
-function notify(n){
-  if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
-  try{ new Notification("TimeLog — Ping",{body:n>1?(n+" Einträge nachzutragen"):"Woran arbeitest du gerade?",
-    tag:"timelog-ping",renotify:true}); }catch(e){}
-}
 
 /* ============================================================
    EXCEL-EXPORT REMINDER
@@ -891,10 +294,13 @@ function todayKey(){ return iso(startOfDay(new Date())).slice(0,10); }
 
 /* In-app nudge: at most once per day, dismissible, re-appears next day if still
    overdue. Notification fires once per day too (same day-gate), best-effort. */
+function exportNudgeWants(){
+  return exportOverdue()
+      && state.settings.exportReminderDay !== todayKey()
+      && !$("intro").classList.contains("show");
+}
 function refreshExportReminder(){
-  const show = exportOverdue()
-            && state.settings.exportReminderDay !== todayKey()
-            && !$("intro").classList.contains("show");
+  const show = exportNudgeWants();
   $("exportNudge").hidden = !show;
   if(show){
     const d=daysSinceExport();
@@ -903,6 +309,9 @@ function refreshExportReminder(){
       + "damit nichts verloren geht. Sie liegen nur auf diesem Gerät.";
     notifyExportOverdue(d);
   }
+  // Only ONE banner at a time: the data-loss nudge wins, so re-sync the
+  // notifications nudge (it hides itself while the export nudge is up).
+  refreshNotifyNudge();
 }
 function notifyExportOverdue(days){
   if(!state.settings.notifyOn || !("Notification" in window) || Notification.permission!=="granted") return;
@@ -919,18 +328,13 @@ function notifyExportOverdue(days){
 $("exportNudgeDismiss").onclick=()=>{ state.settings.exportReminderDay=todayKey(); save(); refreshExportReminder(); };
 $("exportNudgeGo").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 
-/* ---------- toast ---------- */
-let toastT=null;
-function toast(m){ const t=$("toast"); t.textContent=m; t.onclick=null; t.style.cursor=""; t.classList.add("show");
-  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2400); }
-
 /* ============================================================
    WIRING
    ============================================================ */
-$("prevBtn").onclick=()=>{ anchor=addDays(anchor,-DAY_COLS); render(); };
-$("nextBtn").onclick=()=>{ anchor=addDays(anchor,DAY_COLS); render(); };
-$("todayBtn").onclick=()=>{ anchor=startOfDay(new Date()); render(); scrollToNow(); };
-$("datePick").onchange=e=>{ if(e.target.value){ anchor=startOfDay(new Date(e.target.value+"T00:00:00")); render(); } };
+$("prevBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),-getDayCols())); render(); };
+$("nextBtn").onclick=()=>{ setAnchor(addDays(getAnchor(),getDayCols())); render(); };
+$("todayBtn").onclick=()=>{ setAnchor(startOfDay(new Date())); render(); scrollToNow(); };
+$("datePick").onchange=e=>{ if(e.target.value){ setAnchor(startOfDay(new Date(e.target.value+"T00:00:00"))); render(); } };
 $("logNowBtn").onclick=()=>openLogNow();
 $("exportBtn").onclick=()=>{ updateExpCount(); openScrim("exportScrim"); };
 $("expCancel").onclick=()=>close("exportScrim");
@@ -963,8 +367,13 @@ $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ const f=e.target.files[0]; if(f) importXlsx(f); e.target.value=""; };
 
 /* first-run intro */
-function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0; armIntroDemo(); }
-function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true"); }
+function showIntro(){ $("intro").classList.add("show"); $("intro").setAttribute("aria-hidden","false"); $("intro").scrollTop=0;
+  // Mirror the modal pattern: pull the app out of the a11y tree + tab order so
+  // focus can't leak into the controls hidden behind the intro overlay.
+  const app=$("app"); app.setAttribute("aria-hidden","true"); try{ app.inert=true; }catch(e){}
+  armIntroDemo(); }
+function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribute("aria-hidden","true");
+  const app=$("app"); app.removeAttribute("aria-hidden"); try{ app.inert=false; }catch(e){} }
 
 /* Ping→Excel preview: loop the CSS animation only while it's actually
    on screen. Scoped to the scrolling .intro container; CSS already
@@ -1037,7 +446,7 @@ function openInstallHelp(){
 // re-render when crossing the mobile/desktop breakpoint
 let resizeT=null;
 window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{
-  const c=colsForViewport(); if(c!==DAY_COLS){ DAY_COLS=c; render(); }
+  const c=colsForViewport(); if(c!==getDayCols()){ setDayCols(c); render(); }
 },150); });
 
 /* Service worker: offline app shell + auto-update.
@@ -1050,8 +459,11 @@ window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout
 function applyTheme(){
   const dark=state.settings.theme==="dark";
   document.documentElement.setAttribute("data-theme", dark?"dark":"light");
-  $("themeBtn").textContent=dark?"🌙 Theme":"☀️ Theme";
-  $("themeBtn").setAttribute("aria-pressed", dark?"true":"false");
+  // Label by the action the button performs, so SR users hear what activating it does.
+  const btn=$("themeBtn");
+  btn.textContent=dark?"☀️ Helles Design":"🌙 Dunkles Design";
+  btn.setAttribute("aria-label", dark?"Zu hellem Design wechseln":"Zu dunklem Design wechseln");
+  btn.removeAttribute("aria-pressed");
   // tint the OS status bar / window chrome to match the app
   const meta=$("metaTheme"); if(meta) meta.setAttribute("content", dark?"#0f2137":"#faf9f7");
 }
@@ -1060,13 +472,13 @@ $("themeBtn").onclick=()=>{ state.settings.theme=(state.settings.theme==="light"
 function initInterval(){
   const sel=$("intervalSel");
   sel.innerHTML=INTERVALS.map(m=>`<option value="${m}">${m} min</option>`).join("");
-  sel.value=String(SLOT_MIN);
+  sel.value=String(getSlotMin());
   sel.onchange=()=>{
-    SLOT_MIN=parseInt(sel.value,10);
-    state.settings.intervalMin=SLOT_MIN; save();
+    setSlotMin(parseInt(sel.value,10));
+    state.settings.intervalMin=getSlotMin(); save();
     lastFired=floorSlot(new Date()).getTime();
     render(); updateCountdown();
-    toast("Blockgröße: "+SLOT_MIN+" min");
+    toast("Blockgröße: "+getSlotMin()+" min");
   };
 }
 
@@ -1108,8 +520,11 @@ function notifyGranted(){
 }
 function refreshNotifyNudge(){
   const supported = "Notification" in window;
+  // Only ONE banner at a time — the export/data-loss nudge takes priority, so
+  // hold this one back whenever that one is (or would be) showing.
   const show = supported && !notifyGranted() && !state.settings.notifyNudgeDismissed
-            && !$("intro").classList.contains("show");
+            && !$("intro").classList.contains("show")
+            && !exportNudgeWants();
   $("notifyNudge").hidden = !show;
   if(show){
     // sound is the fallback ping channel — mention it if that's off too
@@ -1153,13 +568,12 @@ window.addEventListener("focus",recordBeat);
    If a brand-new slot lit up, repaint so the rail stays current. */
 function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
 
-function scrollToNow(){
-  const y=minOfDay(new Date())*PX_PER_MIN - 200;
-  $("calWrap").scrollTo({top:Math.max(0,y),behavior:"smooth"});
-}
-
 /* ---------- boot ---------- */
 function boot(){
+  // Hand the calendar renderer the two event/modal behaviours it needs: opening
+  // the edit dialog (now in dialogs.js) and attaching drag-to-select (now in
+  // drag.js, imported above and passed through).
+  initCalendar({ openEdit, attachDrag });
   applyTheme();
   if(!state.settings.introSeen) showIntro();
   initInterval();

@@ -39,12 +39,29 @@ test('toggle menu items reflect on/off state via aria-pressed', async ({ page })
   await seed(page, 'dark');
   await page.keyboard.press('Escape'); // close any auto modal
   await page.click('#menuBtn');
-  // theme is dark → themeBtn aria-pressed true
-  await expect(page.locator('#themeBtn')).toHaveAttribute('aria-pressed', 'true');
   // sound is on → soundBtn aria-pressed true
   await expect(page.locator('#soundBtn')).toHaveAttribute('aria-pressed', 'true');
   // notifications off → notifyBtn aria-pressed false
   await expect(page.locator('#notifyBtn')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('theme button is labelled by the action it performs (no ambiguous aria-pressed)', async ({ page }) => {
+  // Theme is a switch-to-the-other-mode action, not a stateful checkbox: an
+  // aria-pressed "🌙 Theme" was ambiguous (pressed = which mode?). It now labels
+  // the target mode and drops aria-pressed so AT announces a clear action.
+  await seed(page, 'dark');
+  await page.keyboard.press('Escape');
+  await page.click('#menuBtn');
+  const btn = page.locator('#themeBtn');
+  await expect(btn).not.toHaveAttribute('aria-pressed', /.*/);
+  // In dark mode the action is "switch to light".
+  await expect(btn).toHaveText(/Helles Design/);
+  await expect(btn).toHaveAttribute('aria-label', /hellem Design/);
+  // Activating it flips the label to the opposite action.
+  await btn.click();
+  await page.click('#menuBtn');
+  await expect(btn).toHaveText(/Dunkles Design/);
+  await expect(btn).toHaveAttribute('aria-label', /dunklem Design/);
 });
 
 test('pinned modal footer stays visible with a long catch-up list', async ({ page }) => {
@@ -63,6 +80,21 @@ test('pinned modal footer stays visible with a long catch-up list', async ({ pag
     return { bodyScrollable: b.scrollHeight > b.clientHeight + 1, footerFlex: getComputedStyle(f).flexGrow };
   });
   expect(footerScrolls.footerFlex).toBe('0');
+});
+
+test('overflow menu stays fully within the viewport on mobile', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'menu clipping only reproduces on the narrow viewport');
+  await seed(page);
+  await page.keyboard.press('Escape'); // close any auto modal
+  await page.click('#menuBtn');
+  const menu = page.locator('#menu');
+  await expect(menu).toBeVisible();
+  const box = await menu.boundingBox();
+  const vw = page.viewportSize().width;
+  expect(box).not.toBeNull();
+  // The whole menu (incl. its left edge with the "Blockgröße" row) must be on-screen.
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
 });
 
 test('empty today column shows onboarding guidance', async ({ page }) => {
