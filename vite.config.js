@@ -1,12 +1,18 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// TimeLog ships to GitHub Pages under the /timelog/ subpath. The single
-// index.html stays the app; Vite just hashes external assets, rewrites the
-// base path, and (via vite-plugin-pwa) generates a Workbox service worker
-// that precaches the app shell for offline use AND auto-updates on deploy.
+// TimeLog ships to GitHub Pages, but is reachable both at the custom-domain
+// root (https://timelog.kideon.de/) AND under the project /timelog/ subpath.
+// A relative base ('./') makes every hashed asset URL resolve against the
+// document URL — exactly like the relative icon/manifest hrefs — so the app
+// works at either location. An absolute '/timelog/' base hard-codes the
+// subpath and 404s every asset on the custom domain.
+// The single index.html stays the app; Vite just hashes external assets,
+// rewrites to the relative base, and (via vite-plugin-pwa) generates a Workbox
+// service worker that precaches the app shell for offline use AND auto-updates
+// on deploy.
 export default defineConfig({
-  base: '/timelog/',
+  base: './',
 
   build: {
     // Keep output readable for a tiny app; assets still get content hashes.

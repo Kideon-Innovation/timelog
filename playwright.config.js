@@ -2,7 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Non-well-known port so concurrent agents don't collide. Override with PORT.
 const PORT = process.env.PORT || '50650';
-const BASE = `http://localhost:${PORT}/timelog/`;
+// Relative Vite base ('./') serves the app at the server root, so the e2e
+// baseURL is the root too (specs navigate baseURL-relative via goto('./')).
+const BASE = `http://localhost:${PORT}/`;
 
 export default defineConfig({
   testDir: './tests',
