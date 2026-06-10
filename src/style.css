@@ -241,11 +241,18 @@
   .col-head .dnum{font-family:'Instrument Serif';font-size:23px;line-height:1.1}
   .col-head .tot{font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-dim);margin-top:1px}
 
-  .gutter{grid-column:1;position:relative}
+  .gutter{grid-column:1;display:flex;flex-direction:column}
+  /* hour labels are anchored to this relative box, which sits below the gutter's
+     hidden col-head placeholder — keeping them aligned with each day's .daygrid */
+  .gutgrid{position:relative}
   .hr-label{position:absolute;right:8px;font-family:'JetBrains Mono';font-size:10px;
     color:var(--text-faint);transform:translateY(-6px)}
 
-  .daycol{position:relative;border-left:1px solid var(--line-soft);cursor:cell}
+  .daycol{display:flex;flex-direction:column;border-left:1px solid var(--line-soft)}
+  /* The hour grid: a relative box in normal flow BELOW the sticky .col-head, so
+     absolutely-positioned children (hour lines, blocks, beats, now-line) anchor
+     here and the 00:00 slot starts clear of the header instead of behind it. */
+  .daygrid{position:relative;cursor:cell}
   .selbox{position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
     border-left:4px solid var(--accent);border-top:1px solid var(--accent);
     box-shadow:inset 0 0 0 1px #ffffff10, 0 1px 3px #00000055;

@@ -1,10 +1,15 @@
 // Drag-to-select layer — the calendar's pointer gesture extracted from main.js.
 //
-// WHAT LIVES HERE: attachDrag(col, day) — the Pointer Events handler that turns
+// WHAT LIVES HERE: attachDrag(grid, day) — the Pointer Events handler that turns
 // a press-drag (mouse/pen: immediate, like Google Calendar) or a touch
 // long-press-then-drag into a time-range selection, then commits it through the
 // range-entry dialog. It owns only the transient per-gesture DOM (the .selbox
 // overlay) and listeners; it holds no app state of its own.
+//
+// It is attached to the .daygrid (the relative hour-grid wrapper that sits BELOW
+// the sticky .col-head), not to the whole .daycol — so the grid's top edge is
+// slot 0 (00:00) and the pointer math needs no header-height offset. This is
+// also why the midnight row is reachable: the header no longer overlaps slot 0.
 //
 // SHARING CONTRACT (how this stays decoupled and cycle-free):
 //   * It imports pure date helpers (hhmm/fmtDur) from time.js, the active block
@@ -28,11 +33,11 @@ import { openRangeEntry } from './dialogs.js';
    Mouse/pen: press-drag selects immediately, like Google Calendar.
    Touch: a plain tap quick-logs one slot; a long-press (~260ms) then drag
    selects a range — so normal vertical scrolling of the calendar still works. */
-export function attachDrag(col, day) {
-  col.addEventListener("pointerdown", e => {
+export function attachDrag(grid, day) {
+  grid.addEventListener("pointerdown", e => {
     if (e.button > 0) return;                                    // ignore right/middle
-    if (e.target.closest(".block") || e.target.closest(".col-head")) return;
-    const rect = col.getBoundingClientRect();
+    if (e.target.closest(".block")) return;                      // editing an existing block, not drawing
+    const rect = grid.getBoundingClientRect();
     const slotMin = getSlotMin(), slotPx = slotMin * PX_PER_MIN, maxIdx = Math.floor(1440 / slotMin) - 1;
     const idxAt = cy => Math.max(0, Math.min(maxIdx, Math.floor((cy - rect.top) / slotPx)));
     const startIdx = idxAt(e.clientY), startY = e.clientY, startX = e.clientX;
@@ -50,9 +55,9 @@ export function attachDrag(col, day) {
       box = document.createElement("div"); box.className = "selbox";
       lbl = document.createElement("span"); lbl.className = "sl"; lbl.textContent = "Eintragen…";
       tm = document.createElement("span"); tm.className = "st"; box.appendChild(lbl); box.appendChild(tm);
-      col.appendChild(box); document.body.classList.add("dragging");
-      col.style.touchAction = "none";                          // stop scroll once selecting
-      try { col.setPointerCapture(e.pointerId); } catch (_) {}
+      grid.appendChild(box); document.body.classList.add("dragging");
+      grid.style.touchAction = "none";                         // stop scroll once selecting
+      try { grid.setPointerCapture(e.pointerId); } catch (_) {}
       if (touch && navigator.vibrate) navigator.vibrate(8);
       draw(startIdx);
     };
@@ -62,7 +67,7 @@ export function attachDrag(col, day) {
       document.removeEventListener("pointercancel", up);
       if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
       document.body.classList.remove("dragging");
-      col.style.touchAction = "";
+      grid.style.touchAction = "";
       if (box) { box.remove(); box = null; }
     };
     const move = ev => {
