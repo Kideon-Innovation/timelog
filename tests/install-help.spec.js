@@ -6,10 +6,14 @@ const KEY = 'timelog.v1';
 // install-help modal from the menu. On desktop Chromium no `beforeinstallprompt`
 // fires, so the install button falls through to openInstallHelp() — which is the
 // platform-specific instruction path we want to assert on.
-async function openInstallHelp(page, userAgent) {
-  await page.addInitScript((ua) => {
+async function openInstallHelp(page, userAgent, { platform, maxTouchPoints } = {}) {
+  await page.addInitScript(({ ua, platform, maxTouchPoints }) => {
     Object.defineProperty(navigator, 'userAgent', { get: () => ua });
-  }, userAgent);
+    // iPadOS reports a desktop-Mac UA but betrays itself via platform + touch —
+    // that's how the app's isIOS check tells an iPad apart from a real Mac.
+    if (platform !== undefined) Object.defineProperty(navigator, 'platform', { get: () => platform });
+    if (maxTouchPoints !== undefined) Object.defineProperty(navigator, 'maxTouchPoints', { get: () => maxTouchPoints });
+  }, { ua: userAgent, platform, maxTouchPoints });
   await page.goto('./');
   await page.evaluate((KEY) => {
     localStorage.setItem(KEY, JSON.stringify({
@@ -51,5 +55,15 @@ test.describe('install help — platform-specific instructions', () => {
     await openInstallHelp(page, IPHONE);
     await expect(page.locator('#installTitle')).toHaveText('Auf iPhone / iPad installieren');
     await expect(page.locator('#installBody')).toContainText('Home-Bildschirm');
+  });
+
+  // iPadOS sends a Mac-like Safari UA; only platform=MacIntel + touch points give
+  // it away. It must get the iOS Home-Bildschirm flow, NOT the Mac Dock flow.
+  test('iPad masquerading as Mac: iOS flow wins, not the Mac Dock flow', async ({ page }) => {
+    await openInstallHelp(page, MAC_SAFARI, { platform: 'MacIntel', maxTouchPoints: 5 });
+    await expect(page.locator('#installTitle')).toHaveText('Auf iPhone / iPad installieren');
+    const body = page.locator('#installBody');
+    await expect(body).toContainText('Home-Bildschirm');
+    await expect(body).not.toContainText('Zum Dock hinzufügen');
   });
 });
