@@ -243,7 +243,9 @@
 
   .gutter{grid-column:1;display:flex;flex-direction:column}
   /* hour labels are anchored to this relative box, which sits below the gutter's
-     hidden col-head placeholder — keeping them aligned with each day's .daygrid */
+     hidden col-head placeholder. The placeholder mirrors the real day header's
+     3-line markup so it lays out to the same height — keeping .gutgrid and each
+     day's .daygrid on one origin so the hour labels align with the hour lines. */
   .gutgrid{position:relative}
   .hr-label{position:absolute;right:8px;font-family:'JetBrains Mono';font-size:10px;
     color:var(--text-faint);transform:translateY(-6px)}

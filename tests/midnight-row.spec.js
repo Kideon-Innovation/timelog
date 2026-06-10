@@ -56,6 +56,50 @@ test('the hour grid begins at/below the sticky header — no midnight dead zone'
   expect(geom.gridTop).toBeGreaterThanOrEqual(geom.headBottom - 1);
 });
 
+// Regression for the alignment defect QA found in the first cut of this fix:
+// to reserve header height in the gutter, the placeholder .col-head held a single
+// '.' (~38px tall), but the real day .col-head stacks three lines (~75px). So
+// .gutgrid started ~37px higher than .daygrid and every "HH:00" gutter label
+// floated ~37px above its hour line. The fix makes the placeholder mirror the
+// real 3-line header so both header cells are the same height and .gutgrid /
+// .daygrid share one vertical origin. This test fails hard on that ~37px offset.
+test('gutter hour labels line up with the day-column hour lines', async ({ page }) => {
+  await seed(page);
+  await closeAnyModal(page);
+
+  await page.locator('#calWrap').evaluate((w) => w.scrollTo({ top: 0 }));
+  await page.waitForTimeout(50);
+
+  // (a) The two grids share a vertical origin: the gutter's .gutgrid top must
+  //     match the day column's .daygrid top. This is the root invariant — if it
+  //     holds, every per-hour offset below is structurally guaranteed to be ~0.
+  const origins = await page.locator('#cal').evaluate((cal) => {
+    const gutGrid = cal.querySelector('.gutter .gutgrid');
+    const dayGrid = cal.querySelector('.daycol .daygrid');
+    return {
+      gutTop: gutGrid.getBoundingClientRect().top,
+      dayTop: dayGrid.getBoundingClientRect().top,
+    };
+  });
+  expect(Math.abs(origins.gutTop - origins.dayTop)).toBeLessThanOrEqual(2);
+
+  // (b) For a sample of hours, the gutter label and the matching hour line in the
+  //     day column sit at the same vertical position (within a few px — the label
+  //     is nudged up 6px by a transform to center on the line, and we compare the
+  //     label's box center against the line). A ~37px regression blows past this.
+  for (const hour of [1, 6, 12, 18, 23]) {
+    const offset = await page.locator('#cal').evaluate((cal, h) => {
+      const label = [...cal.querySelectorAll('.gutter .hr-label')]
+        .find((el) => el.textContent.trim() === String(h).padStart(2, '0') + ':00');
+      const line = cal.querySelector(`.daycol .daygrid .hr-line:nth-of-type(${h + 1})`);
+      const lb = label.getBoundingClientRect();
+      const ln = line.getBoundingClientRect();
+      return (lb.top + lb.height / 2) - ln.top;
+    }, hour);
+    expect(Math.abs(offset), `gutter ${hour}:00 label vs hour line`).toBeLessThanOrEqual(8);
+  }
+});
+
 // Drag-create at a precise time at the very top of the grid. Mouse-only: touch
 // requires the ~260ms long-press the harness can't faithfully emulate.
 test('drag-create at 00:00 and at 00:30 in the first hour produces blocks at the right time', async ({ page }, testInfo) => {
