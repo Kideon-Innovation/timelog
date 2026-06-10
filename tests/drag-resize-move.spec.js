@@ -18,10 +18,22 @@ function hhmm(ms) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+// Pin a fixed, mid-day, off-15-min-boundary instant so the suite is independent
+// of the real wall-clock. Two wall-clock hazards this removes deterministically:
+//   1. cur+2h rolling past midnight (the mobile single-day view wouldn't render
+//      a block that landed on tomorrow → block not found).
+//   2. the 15-min boundary tick firing mid-drag (onBoundary → render() rebuilds
+//      the calendar under the pointer and aborts the gesture). With the clock
+//      frozen, that timer never fires unless a test fast-forwards it on purpose.
+// Z (UTC) keeps the app's local-time reads and the ISO storage in lockstep on
+// the UTC CI/dev runners (the existing time assertions already assume UTC).
+const FIXED_NOW = '2026-06-10T12:07:00Z';
+
 // `blocks`: array of [slotOffset, slots, label] — slotOffset is in 15-min slots
 // from the anchor (cur + 2h). Returns { anchor } so the test can compute the
 // expected times. Seeds a gap-free past so no catch-up ping opens.
 async function seed(page, blocks) {
+  await page.clock.install({ time: new Date(FIXED_NOW) });
   await page.goto('./');
   const anchor = await page.evaluate((blocks) => {
     const SLOT = 15 * 60000;
@@ -219,6 +231,29 @@ test('creating a NEW block by dragging empty grid still works (no regression)', 
   await page.mouse.up();
   await expect(page.locator('#pingScrim.show')).toBeVisible();
   await expect(page.locator('#pingKick')).toHaveText('ZEITRAUM EINTRAGEN');
+});
+
+// Regression: the 15-min boundary tick (onBoundary → render + catch-up ping)
+// must NOT tear down an in-progress drag. Pre-fix, a render() mid-gesture
+// replaced the captured block element and the move silently aborted — which made
+// every drag flaky in the ~1-2s window around :00/:15/:30/:45. Here we hold the
+// pointer mid-drag and fast-forward the clock across the 12:15 boundary; the
+// move must still land.
+test('a 15-min boundary tick mid-drag does not abort the move', async ({ page }) => {
+  const anchor = await seed(page, [[0, 1, 'Boundary']]);   // clock pinned at 12:07
+  const block = page.locator('#cal .block').filter({ hasText: 'Boundary' }).first();
+  await expect(block).toBeVisible();
+  await block.scrollIntoViewIfNeeded();
+  const box = await block.boundingBox();
+  const x = box.x + box.width / 2, y0 = box.y + box.height / 2;
+  await page.mouse.move(x, y0);
+  await page.mouse.down();
+  await page.mouse.move(x, y0 + 2 * SLOT_PX, { steps: 8 });  // drag active, pointer still held
+  await page.clock.fastForward('08:30');                     // 12:07 → past the 12:15 boundary
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const blocks = await readBlocks(page);
+  expect(blocks).toContainEqual({ start: hhmm(anchor + 2 * SLOT_MS), end: hhmm(anchor + 3 * SLOT_MS), label: 'Boundary' });
 });
 
 }); // desktop pointer

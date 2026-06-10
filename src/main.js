@@ -234,11 +234,19 @@ function applyImport(rows){
    TIMER
    ============================================================ */
 let lastFired=floorSlot(new Date()).getTime();
+// A direct-manipulation gesture (move/resize/range-select) marks the body while
+// the pointer is held. A render() during that window rebuilds the calendar DOM
+// out from under the pointer, dropping the captured block and silently aborting
+// the drag — so any timer-driven render/ping must wait for the pointer to lift.
+function gestureInFlight(){ return document.body.classList.contains("dragging"); }
 function scheduleTick(){
   const ms=nextBoundary(new Date()).getTime()-Date.now()+200;
   setTimeout(()=>{ onBoundary(); scheduleTick(); }, Math.max(ms,500));
 }
 function onBoundary(){
+  // Defer the whole boundary tick (render + catch-up ping) until any in-progress
+  // drag releases, so the gesture isn't torn down mid-flight.
+  if(gestureInFlight()){ setTimeout(onBoundary,250); return; }
   lastFired=floorSlot(new Date()).getTime();
   const gaps=gapSlots();
   if(gaps.length && !$("intro").classList.contains("show")){
@@ -395,23 +403,19 @@ function isStandalone(){
 let deferredPrompt=null;
 let relatedAppInstalled=false;   // set async via getInstalledRelatedApps()
 
-/* Single source of truth for the install control's visibility.
-   Hidden (and the "✓ Installiert" pill shown) once the app is installed —
-   detected via standalone display-mode, navigator.standalone, OR a matching
-   installed related app. As long as the app is NOT installed the button is
-   always shown: where we captured a beforeinstallprompt (Chrome/Edge) the
-   click fires the native prompt, otherwise (iOS, Firefox, Safari, …) it opens
-   step-by-step install help — so the instructions are reachable everywhere. */
+/* Single source of truth for the install controls' visibility.
+   Install is reachable from two places — the hamburger menu and the intro /
+   "Was ist das?" card — and both are hidden once the app is installed (detected
+   via standalone display-mode, navigator.standalone, OR a matching installed
+   related app). As long as the app is NOT installed they're shown: where we
+   captured a beforeinstallprompt (Chrome/Edge) the click fires the native
+   prompt, otherwise (iOS, Firefox, Safari, …) it opens step-by-step install
+   help — so the instructions are reachable everywhere. */
 function installed(){ return isStandalone() || relatedAppInstalled; }
 function refreshInstallBtn(){
-  const btn=$("installBtn"), pill=$("installedPill");
-  if(installed()){
-    btn.classList.remove("show");
-    pill.hidden=false;
-    return;
-  }
-  pill.hidden=true;
-  btn.classList.add("show");
+  const inst=installed();
+  $("installBtn").hidden=inst;
+  $("introInstallBtn").hidden=inst;
 }
 
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; refreshInstallBtn(); });
@@ -420,7 +424,7 @@ window.addEventListener("appinstalled",()=>{ deferredPrompt=null; relatedAppInst
 // If the user installs and the window switches to standalone while open, re-evaluate.
 window.matchMedia("(display-mode: standalone)").addEventListener?.("change", refreshInstallBtn);
 
-$("installBtn").onclick=async()=>{
+async function triggerInstall(){
   if(deferredPrompt){
     deferredPrompt.prompt();
     const {outcome}=await deferredPrompt.userChoice;
@@ -430,7 +434,9 @@ $("installBtn").onclick=async()=>{
     return;
   }
   openInstallHelp();                       // iOS / browsers without the prompt API
-};
+}
+$("installBtn").onclick=triggerInstall;
+$("introInstallBtn").onclick=triggerInstall;
 $("installClose").onclick=()=>close("installScrim");
 
 /* Some browsers (Android Chrome with a `related_applications`/scope match, and
@@ -588,7 +594,7 @@ window.addEventListener("focus",recordBeat);
 
 /* heartbeat: stamp the current slot while the tab is visible.
    If a brand-new slot lit up, repaint so the rail stays current. */
-function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
+function recordBeat(){ if(document.hidden||gestureInFlight()) return; if(beat()) render(); }
 
 /* ---------- boot ---------- */
 function boot(){
