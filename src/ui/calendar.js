@@ -101,21 +101,24 @@ export function renderCalendar() {
   const gutPx = dayCols === 1 ? 44 : 60;
   cal.style.gridTemplateColumns = gutPx + 'px repeat(' + dayCols + ',1fr)';
 
-  // gutter
-  const gut = document.createElement('div'); gut.className = 'gutter'; gut.style.height = totalH + 'px';
+  // gutter — a hidden col-head placeholder reserves the same flow height as the
+  // real day headers, then the hour labels live in a relative .gutgrid below it
+  // so they line up with each day column's .daygrid (see the daycol loop).
+  const gut = document.createElement('div'); gut.className = 'gutter';
   const gh = document.createElement('div'); gh.className = 'col-head'; gh.style.visibility = 'hidden'; gh.textContent = '.';
   gut.appendChild(gh);
+  const gutGrid = document.createElement('div'); gutGrid.className = 'gutgrid'; gutGrid.style.height = totalH + 'px';
   for (let h = 1; h < 24; h++) {
     const lb = document.createElement('div'); lb.className = 'hr-label';
     lb.style.top = (h * HOUR_PX) + 'px'; lb.textContent = String(h).padStart(2, '0') + ':00';
-    gut.appendChild(lb);
+    gutGrid.appendChild(lb);
   }
+  gut.appendChild(gutGrid);
   cal.appendChild(gut);
 
   for (let i = 0; i < dayCols; i++) {
     const day = addDays(anchor, i), isToday = sameDay(day, now);
     const col = document.createElement('div'); col.className = 'daycol' + (isToday ? ' today' : '');
-    col.style.height = totalH + 'px';
 
     const head = document.createElement('div');
     head.className = 'col-head' + (isToday ? ' today' : '');
@@ -125,10 +128,19 @@ export function renderCalendar() {
       `<div class="tot">${mins ? fmtDur(mins) : '–'}</div>`;
     col.appendChild(head);
 
+    // The scrollable hour grid lives in its own relative wrapper that sits in
+    // normal flow BELOW the sticky .col-head. Absolutely-positioned content
+    // (hour lines, beats, blocks, now-line) is anchored to this wrapper, so the
+    // 00:00 slot starts at the wrapper's top — clear of the header — instead of
+    // being painted behind it (which made the midnight row un-clickable).
+    const grid = document.createElement('div'); grid.className = 'daygrid';
+    grid.style.height = totalH + 'px';
+    col.appendChild(grid);
+
     // hour lines
     for (let h = 0; h < 24; h++) {
       const ln = document.createElement('div'); ln.className = 'hr-line' + (h % 6 === 0 ? ' major' : '');
-      ln.style.top = (h * HOUR_PX) + 'px'; col.appendChild(ln);
+      ln.style.top = (h * HOUR_PX) + 'px'; grid.appendChild(ln);
     }
 
     // heartbeat rail: faint marks where the machine was alive that day
@@ -152,7 +164,7 @@ export function renderCalendar() {
       tip.appendChild(document.createTextNode(
         'In dieser Zeit war KIDEON time geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät.'));
       b.appendChild(tip);
-      col.appendChild(b);
+      grid.appendChild(b);
     });
 
     // current-slot highlight + now line
@@ -160,9 +172,9 @@ export function renderCalendar() {
       const ss = floorSlot(now);
       const ns = document.createElement('div'); ns.className = 'nowslot';
       ns.style.top = (minOfDay(ss) * PX_PER_MIN) + 'px'; ns.style.height = (getSlotMin() * PX_PER_MIN) + 'px';
-      col.appendChild(ns);
+      grid.appendChild(ns);
       const nl = document.createElement('div'); nl.className = 'nowline';
-      nl.style.top = (minOfDay(now) * PX_PER_MIN) + 'px'; col.appendChild(nl);
+      nl.style.top = (minOfDay(now) * PX_PER_MIN) + 'px'; grid.appendChild(nl);
     }
 
     // blocks — contiguous same-label slots merge into one long block
@@ -182,7 +194,7 @@ export function renderCalendar() {
       el.setAttribute('aria-label', 'Eintrag bearbeiten: ' + a11y);
       el.onclick = () => _openEdit(seg);
       el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); _openEdit(seg); } };
-      col.appendChild(el);
+      grid.appendChild(el);
     });
 
     if (!dayBlocks.length) {
@@ -192,9 +204,9 @@ export function renderCalendar() {
       eh.innerHTML = isToday
         ? `<div class="em">Noch nichts erfasst</div><div class="empty-sub">ziehen zum Eintragen · oder „+ Jetzt eintragen"</div>`
         : `<div class="em">ziehen zum Eintragen</div>`;
-      col.appendChild(eh);
+      grid.appendChild(eh);
     }
-    _attachDrag(col, day);
+    _attachDrag(grid, day);
     cal.appendChild(col);
   }
 }
