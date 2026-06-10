@@ -450,12 +450,23 @@ if(navigator.getInstalledRelatedApps){
 
 function openInstallHelp(){
   const ua=navigator.userAgent, isFirefox=/firefox/i.test(ua);
+  // Safari on macOS: no address-bar install icon — installs via Share → "Zum Dock
+  // hinzufügen" (Safari 17+/Sonoma). Chrome/Edge on Mac still get the default
+  // branch (they DO show the address-bar icon). isIOS already claims iPads that
+  // masquerade as Mac, so this matches only genuine desktop Safari.
+  const isMacSafari = /Macintosh/.test(ua) && /Safari/.test(ua) &&
+                      !/Chrome|Chromium|CriOS|Edg|OPR/.test(ua) && !isIOS;
   let steps;
   if(isIOS){
     $("installTitle").textContent="Auf iPhone / iPad installieren";
     steps=['Tippe unten in Safari auf <b>Teilen</b> <span class="shareglyph">⬆</span>',
            'Wähle <b>„Zum Home-Bildschirm"</b>',
            'Oben rechts auf <b>Hinzufügen</b> — fertig.'];
+  } else if(isMacSafari){
+    $("installTitle").textContent="Auf dem Mac installieren";
+    steps=['Klick in Safari oben rechts auf <b>Teilen</b> <span class="shareglyph">⬆</span> (oder Menü <b>Ablage</b>)',
+           'Wähle <b>„Zum Dock hinzufügen"</b>',
+           'Bestätigen — läuft danach im eigenen Fenster. (Safari 17 / macOS Sonoma)'];
   } else if(isFirefox){
     $("installTitle").textContent="Installieren";
     steps=['Öffne das Browser-<b>Menü</b> (⋮ oben rechts)',
