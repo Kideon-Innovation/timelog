@@ -395,23 +395,19 @@ function isStandalone(){
 let deferredPrompt=null;
 let relatedAppInstalled=false;   // set async via getInstalledRelatedApps()
 
-/* Single source of truth for the install control's visibility.
-   Hidden (and the "✓ Installiert" pill shown) once the app is installed —
-   detected via standalone display-mode, navigator.standalone, OR a matching
-   installed related app. As long as the app is NOT installed the button is
-   always shown: where we captured a beforeinstallprompt (Chrome/Edge) the
-   click fires the native prompt, otherwise (iOS, Firefox, Safari, …) it opens
-   step-by-step install help — so the instructions are reachable everywhere. */
+/* Single source of truth for the install controls' visibility.
+   Install is reachable from two places — the hamburger menu and the intro /
+   "Was ist das?" card — and both are hidden once the app is installed (detected
+   via standalone display-mode, navigator.standalone, OR a matching installed
+   related app). As long as the app is NOT installed they're shown: where we
+   captured a beforeinstallprompt (Chrome/Edge) the click fires the native
+   prompt, otherwise (iOS, Firefox, Safari, …) it opens step-by-step install
+   help — so the instructions are reachable everywhere. */
 function installed(){ return isStandalone() || relatedAppInstalled; }
 function refreshInstallBtn(){
-  const btn=$("installBtn"), pill=$("installedPill");
-  if(installed()){
-    btn.classList.remove("show");
-    pill.hidden=false;
-    return;
-  }
-  pill.hidden=true;
-  btn.classList.add("show");
+  const inst=installed();
+  $("installBtn").hidden=inst;
+  $("introInstallBtn").hidden=inst;
 }
 
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; refreshInstallBtn(); });
@@ -420,7 +416,7 @@ window.addEventListener("appinstalled",()=>{ deferredPrompt=null; relatedAppInst
 // If the user installs and the window switches to standalone while open, re-evaluate.
 window.matchMedia("(display-mode: standalone)").addEventListener?.("change", refreshInstallBtn);
 
-$("installBtn").onclick=async()=>{
+async function triggerInstall(){
   if(deferredPrompt){
     deferredPrompt.prompt();
     const {outcome}=await deferredPrompt.userChoice;
@@ -430,7 +426,9 @@ $("installBtn").onclick=async()=>{
     return;
   }
   openInstallHelp();                       // iOS / browsers without the prompt API
-};
+}
+$("installBtn").onclick=triggerInstall;
+$("introInstallBtn").onclick=triggerInstall;
 $("installClose").onclick=()=>close("installScrim");
 
 /* Some browsers (Android Chrome with a `related_applications`/scope match, and

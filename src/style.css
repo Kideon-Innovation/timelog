@@ -429,17 +429,16 @@
   kbd{font-family:'JetBrains Mono';font-size:10px;background:var(--bg-sunken);border:1px solid var(--line);
     border-radius:4px;padding:1px 5px;color:var(--text-dim)}
 
-  /* ---------- install affordance (top-level header action) ----------
-     Hidden by default; main.js adds .show only when an install can actually
-     be offered, and shows #installedPill instead once installed. */
-  #installBtn{display:none;border-color:var(--accent);color:var(--accent);font-weight:600}
-  #installBtn.show{display:inline-flex}
-  #installBtn:hover{background:var(--accent-soft)}
-  .installed-pill{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;
-    border-radius:8px;font-size:12.5px;font-weight:600;color:var(--accent);
-    background:var(--accent-soft);border:1px solid var(--accent);white-space:nowrap}
-  /* the explicit display above would otherwise beat the [hidden] UA default */
-  .installed-pill[hidden]{display:none}
+  /* ---------- install affordance (menu item + intro card) ----------
+     Install lives in the hamburger menu (#installBtn) and the intro card
+     (.install-cta); main.js sets [hidden] on both once the app is installed.
+     The menu-item's display:flex would otherwise beat the [hidden] UA default. */
+  .menu-item[hidden]{display:none}
+  .install-cta{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .install-cta:hover{background:var(--accent-soft)}
+  .install-cta[hidden]{display:none}
+  /* Install help can be opened from the intro card (z-index:150) — stack it above. */
+  #installScrim{z-index:160}
   .ioslist{margin:14px 0 4px;padding:0;list-style:none;counter-reset:step}
   .ioslist li{position:relative;padding:10px 0 10px 40px;border-bottom:1px solid var(--line-soft);
     color:var(--text-dim);font-size:14px}
@@ -548,7 +547,7 @@
   .intro-badges li{font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--text-dim);
     background:var(--bg-sunken);border:1px solid var(--line);border-radius:20px;padding:5px 12px;white-space:nowrap}
 
-  .welcome-cta{margin-top:22px}
+  .welcome-cta{margin-top:22px;display:flex;flex-direction:column;align-items:center;gap:12px}
   .welcome-cta .btn.amber{height:48px;padding:0 30px;font-size:15.5px;border-radius:12px;
     box-shadow:0 8px 22px -8px var(--accent)}
   .welcome-cta .btn.amber:hover{transform:translateY(-1px)}

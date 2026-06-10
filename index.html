@@ -59,6 +59,7 @@
 
       <div class="welcome-cta">
         <button class="btn amber" id="introStart">Loslegen →</button>
+        <button class="btn install-cta" id="introInstallBtn">↗ App installieren</button>
       </div>
 
       <p class="welcome-more">
@@ -93,11 +94,6 @@
     </div>
     <div class="spacer"></div>
     <div class="controls">
-      <!-- Install is a top-level action: shown whenever the app is NOT yet
-           installed (native prompt where available, step-by-step help
-           otherwise), and hidden again once it's installed (see main.js). -->
-      <button class="btn install-cta" id="installBtn">↗ App installieren</button>
-      <span class="installed-pill" id="installedPill" hidden>✓ Installiert</span>
       <button class="btn amber" id="logNowBtn">+ Jetzt eintragen</button>
       <div class="menu-wrap">
         <button class="btn icon" id="menuBtn" title="Menü" aria-haspopup="true" aria-expanded="false">☰</button>
@@ -113,6 +109,9 @@
           <button class="menu-item" id="exportBtn">↓ Daten-Export</button>
           <button class="menu-item" id="importBtn">↑ Excel-Import</button>
           <div class="menu-sep"></div>
+          <!-- Install: native prompt where available, step-by-step help otherwise
+               (see main.js). Hidden once the app is installed. -->
+          <button class="menu-item" id="installBtn">↗ App installieren</button>
           <button class="menu-item" id="aboutBtn">❓ Was ist das?</button>
         </div>
       </div>
