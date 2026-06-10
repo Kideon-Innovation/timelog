@@ -87,6 +87,64 @@ export function lastLabel(){
   return [...state.blocks].sort((a,b)=>new Date(b.start)-new Date(a.start))[0].label;
 }
 
+/* ---------- direct-manipulation move / resize (Google-Calendar style) ----------
+   A rendered segment (from mergeRuns) maps to a contiguous run of slot-blocks
+   sharing one label. Moving or resizing it re-targets that run onto a NEW
+   [start,end) range. These helpers are pure data ops on state.blocks so the
+   gesture layer (drag.js) stays DOM-only and the math is unit-testable. */
+
+/** The slot-blocks that make up one rendered segment, keyed by start timestamp.
+    Start time is always present and unique per slot, so this stays correct even
+    for id-less blocks (e.g. imported/seeded data) where matching on `id` —
+    possibly undefined for several blocks at once — would collide. */
+function segKeys(seg){ return new Set(seg.blocks.map(b=>new Date(b.start).getTime())); }
+function isOwn(own,b){ return own.has(new Date(b.start).getTime()); }
+
+/** Neighbour ENTRIES (merged same-label runs, excluding the segment itself) that
+    overlap [s,e), split into the ones a move/resize would FULLY consume (every
+    slot of that entry is inside the range → the whole entry gets deleted) vs
+    those only PARTIALLY trimmed (some slots survive). Classifying at the entry
+    level — not per 15-min slot — is what makes "covers part of a 2h block" a
+    silent trim while "covers a whole entry" is the one case that asks to
+    confirm. `full`/`partial` each carry the entry's representative blocks for
+    the live highlight + the confirm label. */
+export function overlapVictims(seg, s, e){
+  const S=s.getTime(), E=e.getTime(), own=segKeys(seg);
+  // everything that isn't the dragged segment, merged into entries
+  const others = state.blocks.filter(b=>!isOwn(own,b));
+  const full=[], partial=[];
+  for(const run of mergeRuns(others)){
+    const rs=new Date(run.start).getTime(), re=new Date(run.end).getTime();
+    if(re<=S || rs>=E) continue;                    // no overlap with the new range
+    if(rs>=S && re<=E) full.push(run);              // whole entry inside → deleted
+    else partial.push(run);                         // some slots survive → trimmed
+  }
+  return {full,partial};
+}
+
+/** Move/resize a segment onto [s,e): trim/delete overlapped neighbours (same
+    clip semantics as clearRange), drop the segment's old slot-blocks, then
+    repaint the label across the new range as slot-blocks. Returns a restore()
+    thunk that reverts state.blocks to its exact prior contents (undo). */
+export function applySegmentRange(seg, s, e, label){
+  const before=state.blocks.map(b=>({...b}));       // snapshot for undo
+  const own=segKeys(seg);
+  // 1. drop the segment's own original slot-blocks FIRST, so clearRange's
+  //    straddle-clipping can't accidentally split one of them (and so a move
+  //    that overlaps the segment's OLD footprint can't leave a stale remnant).
+  state.blocks=state.blocks.filter(b=>!isOwn(own,b));
+  // 2. trim/remove the OTHER neighbours under the new range (clips straddlers)
+  clearRange(s,e);
+  // 3. repaint the label across the new range as slot-blocks
+  for(let t=new Date(s); t.getTime()<e.getTime(); t=new Date(t.getTime()+getSlotMin()*60000)){
+    const end=new Date(Math.min(t.getTime()+getSlotMin()*60000, e.getTime()));
+    state.blocks.push({id:uid(),start:iso(t),end:iso(end),label});
+  }
+  bumpRecent(label);
+  save();
+  return ()=>{ state.blocks=before.map(b=>({...b})); save(); };
+}
+
 export function mergeRuns(blocks){
   const sorted=[...blocks].sort((a,b)=>new Date(a.start)-new Date(b.start));
   const segs=[];

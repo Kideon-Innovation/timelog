@@ -190,8 +190,14 @@ export function renderCalendar() {
       const c = colorFor(seg.label);
       el.style.setProperty('--bc', c); el.style.setProperty('--bg2', tint(c));
       el.style.top = (minOfDay(s) * PX_PER_MIN) + 'px'; el.style.height = Math.max(11, mins * PX_PER_MIN - 3) + 'px';
+      // Hand the direct-manipulation layer (drag.js) the data it needs to move/
+      // resize this rendered segment: the seg itself + the day it belongs to.
+      // drag.js reaches these via closest('.block').__seg on pointerdown.
+      el.__seg = seg; el.__day = day;
       const range = seg.blocks.length > 1 ? hhmm(s) + '–' + hhmm(e) + ' · ' + fmtDur(mins) : hhmm(s);
-      el.innerHTML = `<div class="lbl">${esc(seg.label)}</div><div class="tm">${range}</div>`;
+      el.innerHTML = `<div class="rz rz-top" aria-hidden="true"></div>` +
+        `<div class="lbl">${esc(seg.label)}</div><div class="tm">${range}</div>` +
+        `<div class="rz rz-bot" aria-hidden="true"></div>`;
       const a11y = seg.label + ', ' + hhmm(s) + ' bis ' + hhmm(e) + ', ' + fmtDur(mins);
       el.title = seg.label + '  (' + hhmm(s) + '–' + hhmm(e) + ', ' + fmtDur(mins) + ')';
       // Keyboard/SR users must reach the same edit action mouse users get.

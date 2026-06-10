@@ -237,6 +237,22 @@
   </div>
 </div>
 
+<!-- Generic confirm modal (full-overwrite of an existing block on move/resize) -->
+<div class="scrim" id="confirmScrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-h">
+      <div class="kick" id="confirmKick">ACHTUNG</div>
+      <h2 id="confirmTitle">—</h2>
+      <p id="confirmSub">—</p>
+    </div>
+    <div class="modal-f">
+      <div class="spacer"></div>
+      <button class="btn ghost" id="confirmCancel">Abbrechen</button>
+      <button class="btn del" id="confirmOk">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 </body>
