@@ -101,11 +101,16 @@ export function renderCalendar() {
   const gutPx = dayCols === 1 ? 44 : 60;
   cal.style.gridTemplateColumns = gutPx + 'px repeat(' + dayCols + ',1fr)';
 
-  // gutter — a hidden col-head placeholder reserves the same flow height as the
-  // real day headers, then the hour labels live in a relative .gutgrid below it
-  // so they line up with each day column's .daygrid (see the daycol loop).
+  // gutter — a hidden col-head placeholder reserves the SAME flow height as the
+  // real day headers (which stack three lines: day-of-week, date, total), then
+  // the hour labels live in a relative .gutgrid below it. Because the placeholder
+  // uses the identical 3-line markup (just visibility:hidden), it lays out to the
+  // exact same height, so .gutgrid and each day's .daygrid share one vertical
+  // origin and the "HH:00" labels line up with the hour lines. A single-char
+  // placeholder used to be ~37px shorter, which floated every label above its line.
   const gut = document.createElement('div'); gut.className = 'gutter';
-  const gh = document.createElement('div'); gh.className = 'col-head'; gh.style.visibility = 'hidden'; gh.textContent = '.';
+  const gh = document.createElement('div'); gh.className = 'col-head'; gh.style.visibility = 'hidden';
+  gh.innerHTML = '<div class="dow">&nbsp;</div><div class="dnum">0</div><div class="tot">–</div>';
   gut.appendChild(gh);
   const gutGrid = document.createElement('div'); gutGrid.className = 'gutgrid'; gutGrid.style.height = totalH + 'px';
   for (let h = 1; h < 24; h++) {
