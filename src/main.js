@@ -376,6 +376,9 @@ function hideIntro(){ $("intro").classList.remove("show"); $("intro").setAttribu
 
 function dismissIntro(){ state.settings.introSeen=true; save(); hideIntro(); refreshNotifyNudge(); refreshExportReminder(); }
 $("introStart").onclick=dismissIntro;
+$("introClose").onclick=dismissIntro;
+// Click the backdrop (outside the card) to dismiss — the card itself doesn't bubble.
+$("intro").addEventListener("mousedown",e=>{ if(e.target===$("intro")) dismissIntro(); });
 $("aboutBtn").onclick=()=>showIntro();
 
 /* ============================================================

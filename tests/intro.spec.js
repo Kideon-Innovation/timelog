@@ -64,4 +64,47 @@ test.describe('first-run welcome', () => {
     await expect(page.locator('.intro-demo')).toHaveCount(0);
     await expect(page.locator('#introStartBottom')).toHaveCount(0);
   });
+
+  // The welcome is now a small modal-style card, not a full-screen wall: the app
+  // shows through behind it and you can simply click it away.
+  test('the app is visible behind the welcome card', async ({ page }) => {
+    await freshIntro(page);
+    // Calendar sits behind the translucent scrim — not hidden, just out of reach.
+    await expect(page.locator('#cal')).toBeVisible();
+  });
+
+  test('compliance badges are shown (DSGVO / §203 / lokal)', async ({ page }) => {
+    await freshIntro(page);
+    const badges = page.locator('.intro-badges li');
+    await expect(badges).toHaveCount(3);
+    await expect(page.locator('.intro-badges')).toContainText('DSGVO');
+    await expect(page.locator('.intro-badges')).toContainText('203');
+    await expect(page.locator('.intro-badges')).toContainText('lokal');
+  });
+
+  test('clicking the backdrop dismisses the welcome and enters the app', async ({ page }) => {
+    await freshIntro(page);
+    // Click the scrim itself (top-left corner, outside the centered card).
+    await page.locator('#intro').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#intro')).not.toHaveClass(/show/);
+    const seen = await page.evaluate((KEY) => JSON.parse(localStorage.getItem(KEY)).settings.introSeen, KEY);
+    expect(seen).toBe(true);
+  });
+
+  test('the × button dismisses the welcome', async ({ page }) => {
+    await freshIntro(page);
+    await page.locator('#introClose').click();
+    await expect(page.locator('#intro')).not.toHaveClass(/show/);
+    const seen = await page.evaluate((KEY) => JSON.parse(localStorage.getItem(KEY)).settings.introSeen, KEY);
+    expect(seen).toBe(true);
+  });
+
+  test('re-openable from the menu via "Was ist das?"', async ({ page }) => {
+    await freshIntro(page);
+    await page.locator('#introStart').click();
+    await expect(page.locator('#intro')).not.toHaveClass(/show/);
+    await page.locator('#menuBtn').click();
+    await page.locator('#aboutBtn').click();
+    await expect(page.locator('#intro.show')).toBeVisible();
+  });
 });

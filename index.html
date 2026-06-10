@@ -38,22 +38,31 @@
 </head>
 <body>
 
-<!-- First-run welcome (minimal). The marketing landing now lives at
-     https://kideon.de/time — this stays a quiet, clean entry into the tool. -->
+<!-- First-run welcome — a small "was ist das?" card floating over the app, not a
+     full-screen wall. The app stays visible behind it; click the backdrop, the ×
+     or "Loslegen" to dismiss. Also re-opened via the menu's "Was ist das?".
+     The full marketing landing lives at https://kideon.de/time. -->
 <div class="intro" id="intro" aria-hidden="true">
-  <div class="intro-wrap">
+  <div class="intro-wrap" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <button class="intro-x" id="introClose" title="Schließen" aria-label="Schließen">×</button>
     <section class="welcome">
       <span class="dot"></span>
-      <p class="intro-kick">Zeiterfassung für Kanzleien</p>
-      <h1>KIDEON&nbsp;<em>time</em></h1>
-      <p class="lead">In ruhigen Abständen kurz die Frage „woran arbeitest du gerade?“ — dein Stundenzettel baut sich von selbst auf. Alles bleibt lokal auf diesem Gerät.</p>
+      <p class="intro-kick">Der digitale Stundenzettel für Kanzleien</p>
+      <h1 id="introTitle">KIDEON&nbsp;<em>time</em></h1>
+      <p class="lead">Zeiterfassung, die leise nachfragt — dein Stundenzettel baut sich von selbst. <strong>Deine Daten verlassen nie dieses Gerät.</strong></p>
+
+      <ul class="intro-badges">
+        <li>DSGVO-konform</li>
+        <li>§&nbsp;203 StGB</li>
+        <li>100&nbsp;% lokal</li>
+      </ul>
 
       <div class="welcome-cta">
         <button class="btn amber" id="introStart">Loslegen →</button>
       </div>
 
       <p class="welcome-more">
-        <a href="https://kideon.de/time" target="_blank" rel="noopener noreferrer">Mehr über KIDEON&nbsp;time ↗</a>
+        <a href="https://kideon.de/time" target="_blank" rel="noopener noreferrer">Open&nbsp;Source &amp; mehr erfahren ↗</a>
       </p>
     </section>
   </div>
