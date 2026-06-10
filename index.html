@@ -172,12 +172,12 @@
     </div>
     <div class="modal-b">
       <label class="fl">Tätigkeit <span id="editBulkHint" style="text-transform:none;letter-spacing:0;color:var(--text-faint)"></span></label>
-      <div style="display:flex;gap:8px">
-        <input class="txt" id="editInput" autocomplete="off" placeholder="z. B. Meeting, Doku, Telefonat …">
-        <button class="btn" id="editAll" style="display:none;white-space:nowrap">↧ für alle</button>
-      </div>
+      <input class="txt" id="editInput" autocomplete="off" placeholder="z. B. Meeting, Doku, Telefonat …">
       <div class="chips" id="editChips"></div>
-      <div id="editSlots"></div>
+      <details id="editSplit" class="edit-split">
+        <summary id="editSplitToggle">Einzeln bearbeiten</summary>
+        <div id="editSlots"></div>
+      </details>
     </div>
     <div class="modal-f">
       <button class="btn del" id="editDel">Löschen</button>

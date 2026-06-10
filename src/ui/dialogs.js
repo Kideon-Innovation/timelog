@@ -206,11 +206,14 @@ export function openEdit(seg){
     c.textContent=l; c.title=l; c.onclick=()=>{ inp.value=l; }; chips.appendChild(c);
   });
 
-  // per-slot rows (only when the block spans more than one slot)
+  // Per-slot rows, tucked behind a default-closed disclosure. The top Tätigkeit
+  // field is the whole event; splitting it into differently-labelled sub-blocks
+  // is the rare case, so we hide the plumbing until the user opts in.
   const slots=$("editSlots"); slots.innerHTML=""; editRows=[];
+  const split=$("editSplit");
   if(blocks.length>1){
-    $("editAll").style.display=""; $("editBulkHint").textContent="– setzt alle "+blocks.length+" Blöcke";
-    const lab=document.createElement("label"); lab.className="fl"; lab.textContent="Einzelne Blöcke"; slots.appendChild(lab);
+    split.style.display=""; split.open=false;
+    $("editBulkHint").textContent="– gilt für alle "+blocks.length+" Blöcke";
     blocks.forEach(b=>{
       const bs=new Date(b.start),be=new Date(b.end);
       const row=document.createElement("div"); row.className="gaprow";
@@ -236,16 +239,33 @@ export function openEdit(seg){
       setCleared(false);
       x.onclick=()=>{ const willClear=!row.classList.contains("done"); setCleared(willClear); if(!willClear) ri.focus(); };
       row.append(tg,ri,x); slots.appendChild(row);
-      editRows.push({start:b.start,input:ri,activate:()=>setCleared(false)});
+      // `orig` = the label this row started with. A row counts as a deliberate
+      // split only if its current value differs from where it started — that
+      // keeps "user edited the top field but never touched the rows" out of the
+      // per-slot path (the rows still show the old label, but the user didn't
+      // touch them, so the top field wins).
+      editRows.push({start:b.start,input:ri,orig:b.label});
     });
-  } else { $("editAll").style.display="none"; $("editBulkHint").textContent=""; }
+  } else { split.style.display="none"; split.open=false; $("editBulkHint").textContent=""; }
 
   openScrim("editScrim"); setTimeout(()=>inp.focus(),60);
 }
-$("editAll").onclick=()=>{ const v=$("editInput").value; editRows.forEach(r=>{ r.activate(); r.input.value=v; }); };
+// Save semantics: the top Tätigkeit field is the whole event, so by default we
+// apply its label to every sub-block (the old "für alle" is now the default).
+// We only honour the per-slot rows when the user actually changed one away from
+// its original label inside the disclosure — that's a deliberate split. If they
+// only touched the top field (the rows still show their old labels untouched),
+// the top field wins for the whole segment.
 $("editSave").onclick=()=>{
-  if(editRows.length) editRows.forEach(r=>setBlock(new Date(r.start),r.input.value));
-  else setBlock(new Date(editing.blocks[0].start),$("editInput").value);
+  const v=$("editInput").value;
+  const splitEdited=editRows.some(r=>r.input.value!==r.orig);
+  if(editRows.length && splitEdited){
+    editRows.forEach(r=>setBlock(new Date(r.start),r.input.value));
+  } else if(editRows.length){
+    editRows.forEach(r=>setBlock(new Date(r.start),v));
+  } else {
+    setBlock(new Date(editing.blocks[0].start),v);
+  }
   close("editScrim"); render();
 };
 $("editDel").onclick=()=>{ editing.blocks.forEach(b=>setBlock(new Date(b.start),""));

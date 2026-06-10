@@ -376,6 +376,19 @@
   .gaprow.done .skip:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .gaprow.done input::placeholder{opacity:.7;font-style:italic}
 
+  /* "Einzeln bearbeiten" disclosure in the edit modal: progressive disclosure
+     for the rare split case. Closed by default; styled like the .fl labels so
+     it reads as a quiet section toggle, not a loud button. */
+  .edit-split{margin-top:16px}
+  .edit-split>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);
+    padding:4px 0;user-select:none;transition:color .13s}
+  .edit-split>summary::-webkit-details-marker{display:none}
+  .edit-split>summary::before{content:"▸";font-size:10px;transition:transform .13s;display:inline-block}
+  .edit-split[open]>summary::before{transform:rotate(90deg)}
+  .edit-split>summary:hover{color:var(--text-dim)}
+  .edit-split>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
   .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{background:var(--bg-raised);border:0;color:var(--text-dim);padding:8px 12px;cursor:pointer;font-size:12px;font-family:inherit}
   .seg button.on{background:var(--accent);color:var(--on-accent);font-weight:600}
