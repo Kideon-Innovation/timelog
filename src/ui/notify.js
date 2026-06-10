@@ -22,10 +22,27 @@ import { $ } from './dom.js';
 
 /* ---------- toast ---------- */
 let toastT = null;
-export function toast(m) {
-  const t = $('toast'); t.textContent = m; t.onclick = null; t.style.cursor = '';
+// toast(msg) — plain transient snackbar.
+// toast(msg, {action, onAction}) — adds an inline action button (e.g. Undo) and
+// keeps the toast up longer so the user can actually hit it. Clicking the action
+// runs onAction and dismisses; the toast also auto-dismisses after the timeout.
+export function toast(m, opts) {
+  const t = $('toast'); t.innerHTML = ''; t.onclick = null; t.style.cursor = '';
+  const msg = document.createElement('span'); msg.textContent = m; t.appendChild(msg);
+  const actionable = opts && opts.action && typeof opts.onAction === 'function';
+  if (actionable) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-act'; btn.type = 'button'; btn.textContent = opts.action;
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      clearTimeout(toastT); t.classList.remove('show');
+      opts.onAction();
+    };
+    t.appendChild(btn);
+  }
   t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), actionable ? 6000 : 2400);
 }
 
 /* ---------- notification ---------- */
