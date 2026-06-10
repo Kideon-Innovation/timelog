@@ -274,6 +274,41 @@ $("editCancel").onclick=()=>close("editScrim");
 $("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("editSave").click(); });
 
 /* ============================================================
+   CONFIRM — generic yes/no modal.
+   Used for the one destructive case in direct manipulation: a move/resize that
+   would FULLY cover (delete) an existing block. Resolves true on confirm, false
+   on cancel/backdrop/Esc. Reuses the shared scrim a11y machinery.
+   ============================================================ */
+export function confirmDialog({ title, sub = '', ok = 'Bestätigen', cancel = 'Abbrechen', danger = true }){
+  return new Promise(resolve=>{
+    $("confirmTitle").textContent = title;
+    $("confirmSub").textContent = sub;
+    $("confirmSub").style.display = sub ? '' : 'none';
+    const okBtn=$("confirmOk"), cancelBtn=$("confirmCancel");
+    okBtn.textContent = ok; cancelBtn.textContent = cancel;
+    okBtn.classList.toggle("del", danger); okBtn.classList.toggle("amber", !danger);
+    let done=false;
+    const finish=(val)=>{
+      if(done) return; done=true;
+      okBtn.onclick=null; cancelBtn.onclick=null;
+      document.removeEventListener("keydown", onKey, true);
+      closeScrim("confirmScrim");
+      resolve(val);
+    };
+    const onKey=(e)=>{ if(e.key==="Escape"){ e.stopPropagation(); finish(false); } };
+    okBtn.onclick=()=>finish(true);
+    cancelBtn.onclick=()=>finish(false);
+    // Backdrop click → cancel (the scrim's own pointerdown/click closes the
+    // visual scrim; mirror that into a false resolution).
+    $("confirmScrim").addEventListener("click", function bg(e){
+      if(e.target===$("confirmScrim")){ $("confirmScrim").removeEventListener("click", bg); finish(false); }
+    });
+    document.addEventListener("keydown", onKey, true);
+    openScrim("confirmScrim"); setTimeout(()=>cancelBtn.focus(),60);
+  });
+}
+
+/* ============================================================
    MODAL / DIALOG a11y: focus trap + inert background + focus restore.
    All scrims open/close through openScrim/closeScrim so the behaviour is
    identical everywhere. Visual/a11y only — does not change WHAT a dialog does.
