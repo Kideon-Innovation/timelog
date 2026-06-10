@@ -398,9 +398,10 @@ let relatedAppInstalled=false;   // set async via getInstalledRelatedApps()
 /* Single source of truth for the install control's visibility.
    Hidden (and the "✓ Installiert" pill shown) once the app is installed —
    detected via standalone display-mode, navigator.standalone, OR a matching
-   installed related app. Otherwise the button is shown when we can actually
-   offer an install: a captured beforeinstallprompt (Chrome/Edge) or iOS, where
-   install is manual and we surface step-by-step help instead. */
+   installed related app. As long as the app is NOT installed the button is
+   always shown: where we captured a beforeinstallprompt (Chrome/Edge) the
+   click fires the native prompt, otherwise (iOS, Firefox, Safari, …) it opens
+   step-by-step install help — so the instructions are reachable everywhere. */
 function installed(){ return isStandalone() || relatedAppInstalled; }
 function refreshInstallBtn(){
   const btn=$("installBtn"), pill=$("installedPill");
@@ -410,8 +411,7 @@ function refreshInstallBtn(){
     return;
   }
   pill.hidden=true;
-  const canOffer = !!deferredPrompt || isIOS;
-  btn.classList.toggle("show", canOffer);
+  btn.classList.add("show");
 }
 
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; refreshInstallBtn(); });
