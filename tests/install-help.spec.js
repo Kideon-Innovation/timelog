@@ -35,6 +35,10 @@ test.describe('install help — platform-specific instructions', () => {
     await expect(body).toContainText('Zum Dock hinzufügen');
     // Must NOT show the Chrome/Edge address-bar instruction — Safari has no such icon.
     await expect(body).not.toContainText('Adressleiste');
+    // Lead must not call it the "Home-Bildschirm" — that's an iOS term; on Mac it's the Dock.
+    const lead = page.locator('#installLead');
+    await expect(lead).toContainText('Dock');
+    await expect(lead).not.toContainText('Home-Bildschirm');
   });
 
   test('macOS Chrome: keeps the address-bar install instruction', async ({ page }) => {
