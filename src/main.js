@@ -234,11 +234,19 @@ function applyImport(rows){
    TIMER
    ============================================================ */
 let lastFired=floorSlot(new Date()).getTime();
+// A direct-manipulation gesture (move/resize/range-select) marks the body while
+// the pointer is held. A render() during that window rebuilds the calendar DOM
+// out from under the pointer, dropping the captured block and silently aborting
+// the drag — so any timer-driven render/ping must wait for the pointer to lift.
+function gestureInFlight(){ return document.body.classList.contains("dragging"); }
 function scheduleTick(){
   const ms=nextBoundary(new Date()).getTime()-Date.now()+200;
   setTimeout(()=>{ onBoundary(); scheduleTick(); }, Math.max(ms,500));
 }
 function onBoundary(){
+  // Defer the whole boundary tick (render + catch-up ping) until any in-progress
+  // drag releases, so the gesture isn't torn down mid-flight.
+  if(gestureInFlight()){ setTimeout(onBoundary,250); return; }
   lastFired=floorSlot(new Date()).getTime();
   const gaps=gapSlots();
   if(gaps.length && !$("intro").classList.contains("show")){
@@ -586,7 +594,7 @@ window.addEventListener("focus",recordBeat);
 
 /* heartbeat: stamp the current slot while the tab is visible.
    If a brand-new slot lit up, repaint so the rail stays current. */
-function recordBeat(){ if(document.hidden) return; if(beat()) render(); }
+function recordBeat(){ if(document.hidden||gestureInFlight()) return; if(beat()) render(); }
 
 /* ---------- boot ---------- */
 function boot(){
