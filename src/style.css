@@ -21,6 +21,11 @@
     --now:#dc2626;
     --hour:56px;        /* px per hour */
     --slot:14px;        /* px per 15min (=hour/4) */
+    /* Fixed height for the sticky day/gutter column heads. The timeline body
+       flows *below* the head (see .daybody/.gutbody) so 00:00 is never hidden
+       under the head — and gutter + day heads MUST share this height so the
+       hour labels stay aligned with the hour lines. */
+    --head-h:70px;
     --radius:10px;
     --shadow:0 12px 40px rgba(15,33,55,.08), 0 4px 12px rgba(15,33,55,.04);
     --glow:#ffffff;
@@ -234,18 +239,25 @@
   .cal{display:grid;grid-template-columns:60px repeat(3,1fr);position:relative;min-height:100%}
 
   .col-head{position:sticky;top:0;z-index:6;background:var(--bg);
-    border-bottom:1px solid var(--line);padding:9px 12px;text-align:center}
+    border-bottom:1px solid var(--line);padding:9px 12px;text-align:center;
+    box-sizing:border-box;height:var(--head-h);
+    display:flex;flex-direction:column;justify-content:center;align-items:center}
   .col-head.today{color:var(--accent)}
   .col-head .dow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
   .col-head.today .dow{color:var(--accent)}
   .col-head .dnum{font-family:'Instrument Serif';font-size:23px;line-height:1.1}
   .col-head .tot{font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-dim);margin-top:1px}
 
-  .gutter{grid-column:1;position:relative}
+  .gutter{grid-column:1}
   .hr-label{position:absolute;right:8px;font-family:'JetBrains Mono';font-size:10px;
     color:var(--text-faint);transform:translateY(-6px)}
 
-  .daycol{position:relative;border-left:1px solid var(--line-soft);cursor:cell}
+  /* Timeline bodies: the relative-positioned coordinate space the hour lines,
+     blocks and now-line are painted into. They flow AFTER the sticky head, so
+     top:0 here is just below the head — midnight is reachable, not occluded. */
+  .gutbody,.daybody{position:relative}
+  .daybody{cursor:cell}
+  .daycol{position:relative;border-left:1px solid var(--line-soft)}
   .selbox{position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 8px;overflow:hidden;
     border-left:4px solid var(--accent);border-top:1px solid var(--accent);
     box-shadow:inset 0 0 0 1px #ffffff10, 0 1px 3px #00000055;

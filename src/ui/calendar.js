@@ -101,21 +101,24 @@ export function renderCalendar() {
   const gutPx = dayCols === 1 ? 44 : 60;
   cal.style.gridTemplateColumns = gutPx + 'px repeat(' + dayCols + ',1fr)';
 
-  // gutter
-  const gut = document.createElement('div'); gut.className = 'gutter'; gut.style.height = totalH + 'px';
+  // gutter — sticky head spacer (keeps the labels aligned with the day heads),
+  // then a relative body that flows below it so the hour labels share the same
+  // origin as the day columns' timeline bodies.
+  const gut = document.createElement('div'); gut.className = 'gutter';
   const gh = document.createElement('div'); gh.className = 'col-head'; gh.style.visibility = 'hidden'; gh.textContent = '.';
   gut.appendChild(gh);
+  const gutBody = document.createElement('div'); gutBody.className = 'gutbody'; gutBody.style.height = totalH + 'px';
   for (let h = 1; h < 24; h++) {
     const lb = document.createElement('div'); lb.className = 'hr-label';
     lb.style.top = (h * HOUR_PX) + 'px'; lb.textContent = String(h).padStart(2, '0') + ':00';
-    gut.appendChild(lb);
+    gutBody.appendChild(lb);
   }
+  gut.appendChild(gutBody);
   cal.appendChild(gut);
 
   for (let i = 0; i < dayCols; i++) {
     const day = addDays(anchor, i), isToday = sameDay(day, now);
     const col = document.createElement('div'); col.className = 'daycol' + (isToday ? ' today' : '');
-    col.style.height = totalH + 'px';
 
     const head = document.createElement('div');
     head.className = 'col-head' + (isToday ? ' today' : '');
@@ -125,10 +128,14 @@ export function renderCalendar() {
       `<div class="tot">${mins ? fmtDur(mins) : '–'}</div>`;
     col.appendChild(head);
 
+    // Timeline body: flows below the sticky head so 00:00 (top:0 here) is never
+    // occluded by it. All hour-positioned content lives in here.
+    const body = document.createElement('div'); body.className = 'daybody'; body.style.height = totalH + 'px';
+
     // hour lines
     for (let h = 0; h < 24; h++) {
       const ln = document.createElement('div'); ln.className = 'hr-line' + (h % 6 === 0 ? ' major' : '');
-      ln.style.top = (h * HOUR_PX) + 'px'; col.appendChild(ln);
+      ln.style.top = (h * HOUR_PX) + 'px'; body.appendChild(ln);
     }
 
     // heartbeat rail: faint marks where the machine was alive that day
@@ -152,7 +159,7 @@ export function renderCalendar() {
       tip.appendChild(document.createTextNode(
         'In dieser Zeit war KIDEON time geöffnet — hilft dir zu sehen, welche Lücken echte Pausen sind und was du noch nachtragen kannst. Bleibt nur auf diesem Gerät.'));
       b.appendChild(tip);
-      col.appendChild(b);
+      body.appendChild(b);
     });
 
     // current-slot highlight + now line
@@ -160,9 +167,9 @@ export function renderCalendar() {
       const ss = floorSlot(now);
       const ns = document.createElement('div'); ns.className = 'nowslot';
       ns.style.top = (minOfDay(ss) * PX_PER_MIN) + 'px'; ns.style.height = (getSlotMin() * PX_PER_MIN) + 'px';
-      col.appendChild(ns);
+      body.appendChild(ns);
       const nl = document.createElement('div'); nl.className = 'nowline';
-      nl.style.top = (minOfDay(now) * PX_PER_MIN) + 'px'; col.appendChild(nl);
+      nl.style.top = (minOfDay(now) * PX_PER_MIN) + 'px'; body.appendChild(nl);
     }
 
     // blocks — contiguous same-label slots merge into one long block
@@ -182,7 +189,7 @@ export function renderCalendar() {
       el.setAttribute('aria-label', 'Eintrag bearbeiten: ' + a11y);
       el.onclick = () => _openEdit(seg);
       el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); _openEdit(seg); } };
-      col.appendChild(el);
+      body.appendChild(el);
     });
 
     if (!dayBlocks.length) {
@@ -192,9 +199,10 @@ export function renderCalendar() {
       eh.innerHTML = isToday
         ? `<div class="em">Noch nichts erfasst</div><div class="empty-sub">ziehen zum Eintragen · oder „+ Jetzt eintragen"</div>`
         : `<div class="em">ziehen zum Eintragen</div>`;
-      col.appendChild(eh);
+      body.appendChild(eh);
     }
-    _attachDrag(col, day);
+    col.appendChild(body);
+    _attachDrag(body, day);
     cal.appendChild(col);
   }
 }
@@ -223,6 +231,10 @@ export function scrollToNow() {
   // first-run / blank-day user actually sees the guidance.
   const hint = wrap.querySelector('.empty-hint');
   if (hint) { hint.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-  const y = minOfDay(new Date()) * PX_PER_MIN - 200;
+  // The timeline body sits below the sticky head, so a slot's scroll position is
+  // offset by the head height — include it so "now" lands where we expect.
+  const head = wrap.querySelector('.col-head');
+  const headPx = head ? head.offsetHeight : 0;
+  const y = headPx + minOfDay(new Date()) * PX_PER_MIN - 200;
   wrap.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
