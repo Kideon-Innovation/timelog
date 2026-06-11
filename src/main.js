@@ -450,23 +450,43 @@ if(navigator.getInstalledRelatedApps){
 
 function openInstallHelp(){
   const ua=navigator.userAgent, isFirefox=/firefox/i.test(ua);
-  let steps;
+  // Safari on macOS: no address-bar install icon — installs via Share → "Zum Dock
+  // hinzufügen" (Safari 17+/Sonoma). Chrome/Edge on Mac still get the default
+  // branch (they DO show the address-bar icon). isIOS already claims iPads that
+  // masquerade as Mac, so this matches only genuine desktop Safari.
+  const isMacSafari = /Macintosh/.test(ua) && /Safari/.test(ua) &&
+                      !/Chrome|Chromium|CriOS|Edg|OPR/.test(ua) && !isIOS;
+  // The lead is set per-platform too: "Home-Bildschirm" is an iOS/Android term —
+  // on the Mac the app lands in the Dock, on other desktops it's just a window —
+  // so a single shared lead would be wrong on at least one platform.
+  let steps, title, lead;
   if(isIOS){
-    $("installTitle").textContent="Auf iPhone / iPad installieren";
+    title="Auf iPhone / iPad installieren";
+    lead="So legst du KIDEON time wie eine native App auf deinen Home-Bildschirm — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.";
     steps=['Tippe unten in Safari auf <b>Teilen</b> <span class="shareglyph">⬆</span>',
            'Wähle <b>„Zum Home-Bildschirm"</b>',
            'Oben rechts auf <b>Hinzufügen</b> — fertig.'];
+  } else if(isMacSafari){
+    title="Auf dem Mac installieren";
+    lead="So legst du KIDEON time wie eine native App ins Dock — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.";
+    steps=['Klick in Safari oben rechts auf <b>Teilen</b> <span class="shareglyph">⬆</span> (oder Menü <b>Ablage</b>)',
+           'Wähle <b>„Zum Dock hinzufügen"</b>',
+           'Bestätigen — läuft danach im eigenen Fenster. (Safari 17 / macOS Sonoma)'];
   } else if(isFirefox){
-    $("installTitle").textContent="Installieren";
+    title="Installieren";
+    lead="So installierst du KIDEON time als eigenständige App — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.";
     steps=['Öffne das Browser-<b>Menü</b> (⋮ oben rechts)',
            'Wähle <b>„App installieren"</b> / „Zum Startbildschirm hinzufügen"',
            'Bestätigen — läuft danach im eigenen Fenster.'];
   } else {
-    $("installTitle").textContent="Installieren";
+    title="Installieren";
+    lead="So installierst du KIDEON time als eigenständige App — läuft danach offline, im eigenen Fenster, ohne Browser-Leiste.";
     steps=['Klick in der Adressleiste auf das <b>Installieren-Symbol</b> (↗ bzw. Monitor mit Pfeil)',
            'Alternativ Browser-<b>Menü</b> (⋮) → <b>„App installieren"</b>',
            'Bestätigen — KIDEON time läuft danach offline im eigenen Fenster.'];
   }
+  $("installTitle").textContent=title;
+  $("installLead").textContent=lead;
   $("installBody").innerHTML='<ul class="ioslist">'+steps.map(s=>"<li>"+s+"</li>").join("")+'</ul>';
   openScrim("installScrim");
 }
