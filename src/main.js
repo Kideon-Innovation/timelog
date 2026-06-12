@@ -133,7 +133,10 @@ function datevLohnRows(){
 function doExportDatev(){
   const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
   saveDatevCfg({pnr,la});
-  if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
+  if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
+  // Digits only (QA N3): a stray ";" (or any other char) in these fields would
+  // shift the CSV columns and DATEV Lohn und Gehalt would misread the file.
+  if(!/^\d+$/.test(pnr)||!/^\d+$/.test(la)){ $("datevDetails").open=true; toast("Personalnummer und Lohnart: nur Ziffern (vom Lohnbüro)"); return; }  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
   if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const days=datevLohnRows();
   if(!days.length){ toast("Nichts zu exportieren"); return; }

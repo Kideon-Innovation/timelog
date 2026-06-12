@@ -58,3 +58,27 @@ test('DATEV-Lohn export refuses without Personalnummer/Lohnart', async ({ page }
   await expect(page.locator('#toast')).toContainText('Personalnummer und Lohnart');
   expect(downloadStarted).toBe(false);
 });
+
+// QA finding N3: a ";" inside Personalnummer/Lohnart would shift the CSV
+// columns (6 instead of 4) and DATEV Lohn und Gehalt would misread the file.
+// Both fields are digits-only by definition → refuse anything else with the
+// same toast mechanism as missing fields.
+test('DATEV-Lohn export refuses non-digit Personalnummer/Lohnart (CSV injection)', async ({ page }) => {
+  await page.addInitScript((seed) => {
+    localStorage.setItem('timelog.v1', JSON.stringify(seed));
+  }, SEED);
+  await page.goto('/');
+  await page.evaluate(() => document.getElementById('exportScrim').classList.add('show'));
+  await page.evaluate(() => { document.getElementById('datevDetails').open = true; });
+  await page.fill('#datevPnr', '10;01');
+  await page.fill('#datevLa', '1;00');
+
+  let downloadStarted = false;
+  page.on('download', () => { downloadStarted = true; });
+  await page.click('#expDatev');
+
+  await expect(page.locator('#toast')).toContainText('nur Ziffern');
+  expect(downloadStarted).toBe(false);
+  // The dialog stays open with the details section expanded so the user can fix it.
+  await expect(page.locator('#datevDetails')).toHaveAttribute('open', '');
+});
