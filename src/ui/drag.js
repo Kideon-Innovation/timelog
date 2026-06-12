@@ -30,7 +30,7 @@
 //     import drag.js, so these imports introduce no cycle. The calendar paints
 //     the gesture onto each column via initCalendar's injected attachDrag ref.
 
-import { hhmm, fmtDur, minOfDay, iso } from '../time.js';
+import { hhmm, fmtDur, minOfDay, iso, dayMinuteToDate } from '../time.js';
 import { getSlotMin, PX_PER_MIN } from '../state.js';
 import { overlapVictims, applySegmentRange } from '../blocks.js';
 import { openRangeEntry, confirmDialog } from './dialogs.js';
@@ -40,6 +40,14 @@ import { render } from './calendar.js';
 const MOVE_THRESHOLD = 6;   // px the pointer must travel before a press is a drag
 const EDGE_PX = 8;          // pointer-mode top/bottom resize hit-zone (touch uses the handle)
 const LONG_PRESS_MS = 260;  // touch hold before a body move / range-select begins
+
+// DST spring-forward guard (QA N5). On the changeover day the 02:00–03:00
+// wall-clock hour does not exist; naive Date normalisation maps those slots
+// onto 03:00–04:00 — identical to the REAL 03:00 slots — so committing such a
+// gesture would land an hour later than what the user saw and silently
+// clearRange-overwrite their 03:00 data. dayMinuteToDate() returns null for
+// those minutes; commits are refused with this toast instead.
+const DST_GAP_MSG = 'Diese Uhrzeit gibt es am Tag der Zeitumstellung nicht — bitte ab 03:00 eintragen.';
 
 export function attachDrag(grid, day) {
   grid.addEventListener("pointerdown", e => {
@@ -106,9 +114,9 @@ function startRangeSelect(e, grid, day) {
     cleanup();
     if (wasSelecting) {
       const cur = idxAt(ev.clientY), lo = Math.min(startIdx, cur), hi = Math.max(startIdx, cur);
-      openRangeEntry(slotTime(lo), slotTime(hi + 1));
+      openEntryIfValid(day, lo, hi + 1, slotMin);
     } else if (touch && !moved) {
-      openRangeEntry(slotTime(startIdx), slotTime(startIdx + 1));  // tap = log this slot
+      openEntryIfValid(day, startIdx, startIdx + 1, slotMin);      // tap = log this slot
     }
   };
 
@@ -117,6 +125,14 @@ function startRangeSelect(e, grid, day) {
   document.addEventListener("pointercancel", up);
   if (touch) { holdTimer = setTimeout(beginSel, LONG_PRESS_MS); }
   else { beginSel(); e.preventDefault(); }
+}
+
+/* Open the range-entry dialog for slots [loIdx, hiIdx) — unless a boundary
+   falls into the DST spring-forward gap (see DST_GAP_MSG). */
+function openEntryIfValid(day, loIdx, hiIdx, slotMin) {
+  const s = dayMinuteToDate(day, loIdx * slotMin), en = dayMinuteToDate(day, hiIdx * slotMin);
+  if (!s || !en) { toast(DST_GAP_MSG); return; }
+  openRangeEntry(s, en);
 }
 
 /* ============================================================
@@ -232,7 +248,8 @@ function startBlockGesture(e, grid, blockEl) {
     const { startIdx, endIdx } = computeRange(ev.clientY);
     // no-op? same range → just repaint to be safe and bail (tap handled elsewhere)
     if (startIdx === segStartIdx && endIdx === segStartIdx + lenSlots) { render(); return; }
-    const s = idxToTime(startIdx), en = idxToTime(endIdx);
+    const s = dayMinuteToDate(day, startIdx * slotMin), en = dayMinuteToDate(day, endIdx * slotMin);
+    if (!s || !en) { toast(DST_GAP_MSG); render(); return; }   // DST gap → refuse, repaint at the old place
     const { full } = overlapVictims(seg, s, en);
     const finish = () => {
       const restore = applySegmentRange(seg, s, en, seg.label);

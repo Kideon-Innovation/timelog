@@ -58,6 +58,20 @@ export function minOfDay(d) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+/**
+ * Date at minute-of-day m (0..1440, where 1440 = next midnight) on day's
+ * calendar day — or null when that local wall-clock time does not exist.
+ * On the DST spring-forward day Date normalisation silently maps the phantom
+ * 02:00–03:00 hour onto 03:00–04:00, colliding with the real 03:00 slots; the
+ * round-trip check exposes that so callers can refuse instead of mis-committing.
+ */
+export function dayMinuteToDate(day, m) {
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  d.setMinutes(m);
+  return minOfDay(d) === m % 1440 ? d : null;
+}
+
 /** "HH:MM" label for a minute-of-day count (wraps at 24h). */
 export function minLabel(m) {
   const z = (n) => String(n).padStart(2, '0');
