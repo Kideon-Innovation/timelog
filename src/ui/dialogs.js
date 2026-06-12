@@ -177,12 +177,23 @@ export function openRangeEntry(s,e){
   openScrim("pingScrim"); setTimeout(()=>inp.focus(),60);
 }
 
-export function openLogNow(){
-  // manual: log the current (ongoing) slot
+/* Present-tense ping for the current (ongoing) slot — shared core for the
+   manual "Jetzt eintragen" button and the Morgen-Modus ping. Only the kicker
+   differs; question + slot logic stay identical so they can't drift apart. */
+function openCurrentSlotPing(kick){
   openSinglePing(floorSlot(new Date()));
   openScrim("pingScrim");
-  $("pingKick").textContent="MANUELL EINTRAGEN";
+  $("pingKick").textContent=kick;
   $("pingTitle").textContent="Woran arbeitest du gerade?";
+}
+export function openLogNow(){
+  // manual: log the current (ongoing) slot
+  openCurrentSlotPing("MANUELL EINTRAGEN");
+}
+export function openMorningPing(){
+  // Morgen-Modus (see morningMode in blocks.js): first ping after a night
+  // without logging — ask only about NOW, never about the night gap.
+  openCurrentSlotPing("GUTEN MORGEN");
 }
 function closePing(){ closeScrim("pingScrim"); }
 

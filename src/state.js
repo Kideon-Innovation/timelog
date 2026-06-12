@@ -30,6 +30,9 @@ import { startOfDay } from './time.js';
 export const KEY = 'timelog.v1';
 export const INTERVALS = [60, 30, 20, 15, 10, 6];   // = 60 / n  (n = 1,2,3,4,6,10)
 export const CATCHUP_CAP_MS = 2 * 60 * 60 * 1000;   // only ask back ~2h
+/* Morgen-Modus boundary: gaps that reach back across today 06:00 local are a
+   night's sleep, not forgotten work — see morningMode() in blocks.js. */
+export const MORNING_BOUNDARY_HOUR = 6;
 /* Calm, Kideon-harmonious block hues — mid-tone, readable on off-white and navy. */
 export const PALETTE = ['#c49a6c', '#5f8f8c', '#c0766a', '#6b86b0', '#a07fa6',
   '#8aa173', '#c2935a', '#5b9aa0', '#d0a85c', '#9488c0', '#c98bab', '#79a3c4'];
