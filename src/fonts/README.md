@@ -1,0 +1,3 @@
+# Fonts
+
+The woff2 files in this directory are self-hosted copies of [DM Sans](https://github.com/googlefonts/dm-fonts), [Instrument Serif](https://github.com/Instrument/instrument-serif), and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), obtained via Google Fonts (latin and latin-ext subsets). All three typefaces are licensed under the SIL Open Font License, Version 1.1 — see [OFL-dm-sans.txt](./OFL-dm-sans.txt), [OFL-instrument-serif.txt](./OFL-instrument-serif.txt), and [OFL-jetbrains-mono.txt](./OFL-jetbrains-mono.txt) for the full license texts including the respective copyright notices.

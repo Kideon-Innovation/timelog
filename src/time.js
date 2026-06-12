@@ -58,6 +58,20 @@ export function minOfDay(d) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+/**
+ * Date at minute-of-day m (0..1440, where 1440 = next midnight) on day's
+ * calendar day — or null when that local wall-clock time does not exist.
+ * On the DST spring-forward day Date normalisation silently maps the phantom
+ * 02:00–03:00 hour onto 03:00–04:00, colliding with the real 03:00 slots; the
+ * round-trip check exposes that so callers can refuse instead of mis-committing.
+ */
+export function dayMinuteToDate(day, m) {
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  d.setMinutes(m);
+  return minOfDay(d) === m % 1440 ? d : null;
+}
+
 /** "HH:MM" label for a minute-of-day count (wraps at 24h). */
 export function minLabel(m) {
   const z = (n) => String(n).padStart(2, '0');
@@ -73,6 +87,26 @@ export function blockDurMin(b) {
 export function fmtDur(min) {
   const h = Math.floor(min / 60), m = min % 60;
   return h ? (h + 'h' + (m ? ' ' + m + 'm' : '')) : (m + 'm');
+}
+
+/** Parse the manual-entry Datum/Von/Bis fields into a slot-aligned local
+ *  [start, end) range, or null when the input is unusable. Snapping mirrors
+ *  the Excel import: floor the start, ceil the end to the slotMin grid (an
+ *  on-grid boundary stays put). "00:00" as Bis means midnight at the END of
+ *  the chosen day; any other Bis <= Von is rejected rather than silently
+ *  wrapped, so a typo can't create a near-24h block. */
+export function rangeFromFields(dateStr, fromStr, toStr, slotMin) {
+  if (!dateStr || !fromStr || !toStr) return null;
+  const start = new Date(dateStr + 'T' + fromStr + ':00');
+  let end = new Date(dateStr + 'T' + toStr + ':00');
+  if (isNaN(start) || isNaN(end)) return null;
+  if (end.getTime() <= start.getTime()) {
+    if (toStr === '00:00') end = new Date(end.getTime() + 86400000);
+    else return null;
+  }
+  const s = floorSlot(start, slotMin);
+  const e = nextBoundary(new Date(end.getTime() - 1), slotMin); // ceil to grid
+  return e.getTime() > s.getTime() ? { start: s, end: e } : null;
 }
 
 /** Escape the 4 HTML-significant chars for safe innerHTML interpolation. */

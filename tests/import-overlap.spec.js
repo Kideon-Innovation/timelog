@@ -185,3 +185,63 @@ test('sub-slot import rows snap to the slot grid — no sub-6-min smear, no over
 
   expect(errors).toEqual([]);
 });
+
+// QA finding M5: the old midnight heuristic (`if (end <= start) end += 24h`)
+// turned typo rows into silent monster blocks — 09:00–09:00 became a 24h block,
+// 14:00–13:00 a 23h block. Inverted/equal daytime times must be SKIPPED and
+// reported via the existing "n übersprungen" toast; genuine overnight rows
+// (end shortly after midnight, block < 12h) still cross midnight.
+test('inverted/equal time rows are skipped — never silent 24h blocks', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  await page.addInitScript(() => localStorage.setItem('timelog.v1', JSON.stringify({
+    blocks: [], recentLabels: [],
+    settings: { intervalMin: 15, soundOn: false, notifyOn: false, introSeen: true,
+      notifyNudgeDismissed: true, exportReminderDay: '', exportNotifyDay: '', theme: 'light' },
+  })));
+  await page.goto('/');
+
+  const b64 = await page.evaluate(() => {
+    const X = window.XLSX;
+    const aoa = [
+      ['Datum', 'Wochentag', 'Start', 'Ende', 'Dauer (min)', 'Tätigkeit'],
+      ['02.06.2026', 'Di', '09:00', '10:00', 60, 'Gültig'],
+      ['02.06.2026', 'Di', '09:00', '09:00', 0, 'Tippfehler gleich'],   // would be 24h
+      ['02.06.2026', 'Di', '14:00', '13:00', 0, 'Tippfehler invers'],   // would be 23h
+      ['02.06.2026', 'Di', '23:45', '00:00', 15, 'Echt über Mitternacht'],
+    ];
+    const ws = X.utils.aoa_to_sheet(aoa);
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, 'TimeLog');
+    const buf = X.write(wb, { type: 'array', bookType: 'xlsx' });
+    let bin = '';
+    const arr = new Uint8Array(buf);
+    for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+    return btoa(bin);
+  });
+
+  const dir = mkdtempSync(join(tmpdir(), 'xlsx-'));
+  const file = join(dir, 'inverted.xlsx');
+  writeFileSync(file, Buffer.from(b64, 'base64'));
+
+  await page.setInputFiles('#importFile', file);
+  // 2 valid rows in, 2 typo rows skipped + reported.
+  await expect(page.locator('#toast')).toContainText('Importiert: 2 Blöcke (2 übersprungen)');
+
+  const blocks = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('timelog.v1')).blocks
+      .map((b) => ({ start: b.start, end: b.end, label: b.label }))
+      .sort((a, b) => a.start.localeCompare(b.start)));
+
+  expect(blocks).toEqual([
+    { start: '2026-06-02T09:00:00', end: '2026-06-02T10:00:00', label: 'Gültig' },
+    { start: '2026-06-02T23:45:00', end: '2026-06-03T00:00:00', label: 'Echt über Mitternacht' },
+  ]);
+  // Belt and braces: nothing remotely day-sized was created.
+  for (const b of blocks) {
+    expect((new Date(b.end) - new Date(b.start)) / 3600000).toBeLessThan(12);
+  }
+
+  expect(errors).toEqual([]);
+});

@@ -13,7 +13,7 @@ import {
   floorSlot as floorSlotMin, nextBoundary as nextBoundaryMin,
 } from './time.js';
 import {
-  state, save,
+  state, save, onSaveError, initCrossTabSync,
   INTERVALS, PX_PER_MIN, DOW,
   getSlotMin, setSlotMin, getAnchor, setAnchor,
   colsForViewport, getDayCols, setDayCols,
@@ -33,6 +33,7 @@ import {
   openEdit, openLogNow, openMorningPing, openPing,
 } from './ui/dialogs.js';
 import { attachDrag } from './ui/drag.js';
+import { rowsToBlocks } from './importRows.js';
 
 // Thin wrappers so the rest of the app keeps calling floorSlot(d) /
 // nextBoundary(d) unchanged; they supply the active block size to the pure,
@@ -133,7 +134,9 @@ function doExportDatev(){
   const pnr=$("datevPnr").value.trim(), la=$("datevLa").value.trim();
   saveDatevCfg({pnr,la});
   if(!pnr||!la){ $("datevDetails").open=true; toast("Personalnummer und Lohnart angeben (vom Lohnbüro)"); return; }
-  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
+  // Digits only (QA N3): a stray ";" (or any other char) in these fields would
+  // shift the CSV columns and DATEV Lohn und Gehalt would misread the file.
+  if(!/^\d+$/.test(pnr)||!/^\d+$/.test(la)){ $("datevDetails").open=true; toast("Personalnummer und Lohnart: nur Ziffern (vom Lohnbüro)"); return; }  // Same inverted-range hint as the Excel export, kept consistent with #expCount.
   if(rangeInverted()){ updateExpCount(); toast(INVERTED_RANGE_MSG); return; }
   const days=datevLohnRows();
   if(!days.length){ toast("Nichts zu exportieren"); return; }
@@ -155,21 +158,10 @@ function doExportDatev(){
    IMPORT (xlsx via SheetJS) — round-trips the export format.
    Reads Datum / Start / Ende / Tätigkeit; Wochentag + Dauer ignored.
    Conflict policy: slot-overwrite (imported block wins on equal start).
+   The pure row→block parsing/validation (German text cells AND native Excel
+   date/time cells, midnight-crossing rules, slot snapping) lives in
+   src/importRows.js so it is unit-testable; this is just the I/O shell.
    ============================================================ */
-// Accept BOTH the app's own text export ("02.06.2026" / "09:00") AND files
-// that were opened/edited and re-saved in real Excel — where the Datum/Start/
-// Ende columns come back as native date/time cells. With {raw:true,cellDates:
-// true} SheetJS hands those over as JS Date objects, so parse those directly
-// from their local components; fall back to the German text regex otherwise.
-function parseDE(v){
-  if(v instanceof Date && !isNaN(v)) return {d:v.getDate(),m:v.getMonth()+1,y:v.getFullYear()};
-  const m=String(v||"").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  return m ? {d:+m[1],m:+m[2],y:+m[3]} : null; }
-function parseHM(v){
-  if(v instanceof Date && !isNaN(v)) return {h:v.getHours(),min:v.getMinutes()};
-  const m=String(v||"").trim().match(/^(\d{1,2}):(\d{2})$/);
-  return m ? {h:+m[1],min:+m[2]} : null; }
-
 function importXlsx(file){
   if(typeof XLSX==="undefined"){ toast("Excel-Funktion gerade nicht verfügbar"); return; }
   const reader=new FileReader();
@@ -188,35 +180,12 @@ function importXlsx(file){
   reader.readAsArrayBuffer(file);
 }
 function applyImport(rows){
-  if(!rows || rows.length<2){ toast("Datei ist leer"); return; }
-  const head=rows[0].map(h=>String(h||"").trim().toLowerCase());
-  const ci={ date:head.indexOf("datum"), start:head.indexOf("start"),
-    end:head.indexOf("ende"), label:head.findIndex(h=>h.startsWith("tätigkeit")) };
-  if(ci.date<0||ci.start<0||ci.end<0||ci.label<0){
-    toast("Spalten Datum/Start/Ende/Tätigkeit fehlen"); return; }
-  let ok=0, bad=0; const imported=[];
-  for(let i=1;i<rows.length;i++){
-    const r=rows[i]; if(!r||!r.length) continue;
-    const d=parseDE(r[ci.date]), s=parseHM(r[ci.start]), e=parseHM(r[ci.end]);
-    const label=String(r[ci.label]||"").trim();
-    if(!d||!s||!e||!label){ bad++; continue; }
-    let start=new Date(d.y,d.m-1,d.d,s.h,s.min,0,0);
-    let end=new Date(d.y,d.m-1,d.d,e.h,e.min,0,0);
-    if(end.getTime()<=start.getTime()) end=new Date(end.getTime()+86400000); // 23:xx–00:00 = last slot of day
-    // Snap imported boundaries to the active slot grid so imports share the
-    // app's own data model (in-app entries are always slot-aligned). Floor the
-    // start, ceil the end: a row finer than one slot (e.g. a hand-crafted 3-min
-    // block, or boundaries off the grid) becomes a full, readable slot instead
-    // of a sub-slot sliver that hits the calendar's min-height clamp and smears
-    // over its neighbour. Already-aligned rows (our own export) are unchanged:
-    // floor/ceil of an on-grid boundary is itself.
-    start=floorSlot(start);
-    end=nextBoundary(new Date(end.getTime()-1)); // ceil to slot grid (on-grid end stays put)
-    if(end.getTime()<=start.getTime()){ bad++; continue; } // zero-length after snap
-    imported.push({start:iso(start),end:iso(end),label}); ok++;
-  }
+  const res=rowsToBlocks(rows,getSlotMin());
+  if(res.error==="empty"){ toast("Datei ist leer"); return; }
+  if(res.error==="columns"){ toast("Spalten Datum/Start/Ende/Tätigkeit fehlen"); return; }
+  const {ok,bad,blocks}=res;
   if(!ok){ toast("Keine gültigen Zeilen gefunden"); return; }
-  for(const b of imported){
+  for(const b of blocks){
     // Replace whatever the imported block covers across its FULL span, the same
     // way in-app drag does (fillRange→clearRange). A plain start-only overwrite
     // left finer pre-existing blocks behind when a coarse row (e.g. 09:00–11:00)
@@ -233,7 +202,6 @@ function applyImport(rows){
 /* ============================================================
    TIMER
    ============================================================ */
-let lastFired=floorSlot(new Date()).getTime();
 // A direct-manipulation gesture (move/resize/range-select) marks the body while
 // the pointer is held. A render() during that window rebuilds the calendar DOM
 // out from under the pointer, dropping the captured block and silently aborting
@@ -251,6 +219,13 @@ function scheduleTick(){
    tick only, matching the previous behaviour of the three call sites). */
 function pingOpenSlots(loud){
   if($("intro").classList.contains("show")) return;
+  // Never (re)build the ping while ANY dialog is up. If the open dialog IS the
+  // ping itself, rebuilding would wipe text the user is typing (M3); if it's
+  // another dialog (edit/export/…), the ping would stack on top of it and
+  // break focus + Esc (M4). The gaps aren't lost: a deferred boundary tick
+  // (see onBoundary) re-pings right after the dialog closes, and the next
+  // tab return / boundary covers the rest.
+  if(openScrims().length) return;
   if(morningMode()){
     if(loud){ if(state.settings.soundOn) beep(); notify(1); }
     openMorningPing();
@@ -263,9 +238,11 @@ function pingOpenSlots(loud){
 }
 function onBoundary(){
   // Defer the whole boundary tick (render + catch-up ping) until any in-progress
-  // drag releases, so the gesture isn't torn down mid-flight.
-  if(gestureInFlight()){ setTimeout(onBoundary,250); return; }
-  lastFired=floorSlot(new Date()).getTime();
+  // drag releases (a render would tear the gesture down mid-flight) AND until
+  // any open dialog closes — so the tick neither rebuilds an open catch-up
+  // (M3, typed text) nor stacks a ping over another modal (M4), and the ping
+  // fires promptly once the dialog is dismissed.
+  if(gestureInFlight() || openScrims().length){ setTimeout(onBoundary,250); return; }
   pingOpenSlots(true);
   refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
@@ -537,7 +514,6 @@ function initInterval(){
   sel.onchange=()=>{
     setSlotMin(parseInt(sel.value,10));
     state.settings.intervalMin=getSlotMin(); save();
-    lastFired=floorSlot(new Date()).getTime();
     render(); updateCountdown();
     toast("Blockgröße: "+getSlotMin()+" min");
   };
@@ -620,6 +596,24 @@ document.querySelectorAll(".scrim").forEach(s=>{
   s.addEventListener("click",e=>{ if(downOnSelf && e.target===s) closeScrim(s.id); downOnSelf=false; });
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ openScrims().forEach(s=>closeScrim(s.id)); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
+
+/* save() failed (quota exceeded, private mode, …) — the data did NOT persist.
+   Surface it loudly with a direct path to the Excel export so nothing is lost;
+   every further failing save re-raises the toast (persistent enough by design). */
+onSaveError(()=>toast("Speichern fehlgeschlagen — bitte Daten als Excel exportieren!",
+  { action:"Exportieren", onAction:()=>{ updateExpCount(); openScrim("exportScrim"); } }));
+
+/* another tab/PWA window wrote timelog.v1 — state.js merged it into memory;
+   refresh everything that renders from state. Deferred while a drag gesture is
+   in flight (same reason as onBoundary: render() would tear the gesture down). */
+function onExternalState(){
+  if(gestureInFlight()){ setTimeout(onExternalState,250); return; }
+  if(INTERVALS.includes(state.settings.intervalMin) && state.settings.intervalMin!==getSlotMin()){
+    setSlotMin(state.settings.intervalMin); $("intervalSel").value=String(getSlotMin());
+  }
+  applyTheme(); refreshSoundBtn(); refreshNotifyBtn(); render();
+}
+initCrossTabSync(onExternalState);
 
 // returning to tab → catch up
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); pingOpenSlots(false); } });
