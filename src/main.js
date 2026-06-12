@@ -247,18 +247,18 @@ function scheduleTick(){
    initial load). Morgen-Modus (see morningMode in blocks.js): after a night
    without logging there is nothing worth back-filling — gapSlots() already
    reports no gaps, and instead of the retro catch-up we ask only about the
-   CURRENT slot in present tense. `alert` adds beep+notification (boundary
+   CURRENT slot in present tense. `loud` adds beep+notification (boundary
    tick only, matching the previous behaviour of the three call sites). */
-function pingOpenSlots(alert){
+function pingOpenSlots(loud){
   if($("intro").classList.contains("show")) return;
   if(morningMode()){
-    if(alert){ if(state.settings.soundOn) beep(); notify(1); }
+    if(loud){ if(state.settings.soundOn) beep(); notify(1); }
     openMorningPing();
     return;
   }
   const gaps=gapSlots();
   if(!gaps.length) return;
-  if(alert){ if(state.settings.soundOn) beep(); notify(gaps.length); }
+  if(loud){ if(state.settings.soundOn) beep(); notify(gaps.length); }
   openPing(true);
 }
 function onBoundary(){

@@ -52,7 +52,7 @@ test.describe('Morgen-Modus', () => {
     // Present-tense dialog for the current slot…
     await expect(page.locator('#pingScrim')).toHaveClass(/show/);
     await expect(page.locator('#pingTitle')).toHaveText('Woran arbeitest du gerade?');
-    await expect(page.locator('#pingKick')).toHaveText('GUTEN MORGEN');
+    await expect(page.locator('#pingKick')).toHaveText('WILLKOMMEN ZURÜCK');
     // …and NOT the multi-row catch-up (no retro gap rows).
     await expect(page.locator('#pingBody .gaprow')).toHaveCount(0);
 
@@ -70,15 +70,15 @@ test.describe('Morgen-Modus', () => {
     test.skip(hour < 8, 'needs a past 07:00 block and multiple gaps');
 
     await seedAndBoot(page, () => {
-      const mk = (h, m, label) => {
+      const mk = (id, h, m, label) => {
         const s = new Date(); s.setHours(h, m, 0, 0);
-        return { start: s.toISOString(), end: new Date(s.getTime() + 15 * 60000).toISOString(), label };
+        return { id, start: s.toISOString(), end: new Date(s.getTime() + 15 * 60000).toISOString(), label };
       };
       // night block + a morning block at 07:00 → morning mode must be OFF
       const n = new Date(); n.setDate(n.getDate() - 1); n.setHours(23, 0, 0, 0);
       return [
         { id: 'n1', start: n.toISOString(), end: new Date(n.getTime() + 15 * 60000).toISOString(), label: 'Spät' },
-        mk(7, 0, 'Früh'),
+        mk('m1', 7, 0, 'Früh'),
       ];
     });
 

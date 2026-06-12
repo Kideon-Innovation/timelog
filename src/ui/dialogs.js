@@ -192,8 +192,10 @@ export function openLogNow(){
 }
 export function openMorningPing(){
   // Morgen-Modus (see morningMode in blocks.js): first ping after a night
-  // without logging — ask only about NOW, never about the night gap.
-  openCurrentSlotPing("GUTEN MORGEN");
+  // without logging — ask only about NOW, never about the night gap. The
+  // kicker is deliberately time-of-day-neutral: a multi-day gap can put the
+  // user here in the evening too, where "Guten Morgen" would read oddly.
+  openCurrentSlotPing("WILLKOMMEN ZURÜCK");
 }
 function closePing(){ closeScrim("pingScrim"); }
 
