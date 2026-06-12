@@ -13,7 +13,7 @@ import {
   floorSlot as floorSlotMin, nextBoundary as nextBoundaryMin,
 } from './time.js';
 import {
-  state, save,
+  state, save, onSaveError, initCrossTabSync,
   INTERVALS, PX_PER_MIN, DOW,
   getSlotMin, setSlotMin, getAnchor, setAnchor,
   colsForViewport, getDayCols, setDayCols,
@@ -620,6 +620,24 @@ document.querySelectorAll(".scrim").forEach(s=>{
   s.addEventListener("click",e=>{ if(downOnSelf && e.target===s) closeScrim(s.id); downOnSelf=false; });
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ openScrims().forEach(s=>closeScrim(s.id)); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
+
+/* save() failed (quota exceeded, private mode, …) — the data did NOT persist.
+   Surface it loudly with a direct path to the Excel export so nothing is lost;
+   every further failing save re-raises the toast (persistent enough by design). */
+onSaveError(()=>toast("Speichern fehlgeschlagen — bitte Daten als Excel exportieren!",
+  { action:"Exportieren", onAction:()=>{ updateExpCount(); openScrim("exportScrim"); } }));
+
+/* another tab/PWA window wrote timelog.v1 — state.js merged it into memory;
+   refresh everything that renders from state. Deferred while a drag gesture is
+   in flight (same reason as onBoundary: render() would tear the gesture down). */
+function onExternalState(){
+  if(gestureInFlight()){ setTimeout(onExternalState,250); return; }
+  if(INTERVALS.includes(state.settings.intervalMin) && state.settings.intervalMin!==getSlotMin()){
+    setSlotMin(state.settings.intervalMin); $("intervalSel").value=String(getSlotMin());
+  }
+  applyTheme(); refreshSoundBtn(); refreshNotifyBtn(); render();
+}
+initCrossTabSync(onExternalState);
 
 // returning to tab → catch up
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); pingOpenSlots(false); } });
