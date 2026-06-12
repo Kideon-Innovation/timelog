@@ -145,3 +145,37 @@ test('gapSlots: after logging the current slot at 09:30, later ticks resume norm
 test('gapSlots: no blocks at all → [] (first-time user, unchanged)', () => {
   assert.deepEqual(B.gapSlots(d(8, 9, 30)), []);
 });
+
+/* ---------- interplay: morning mode × grouped catch-up ----------
+   openCatchup renders groupGapRuns(gapSlots(now)). These compose the two
+   features end-to-end at the data layer: in morning mode the composition
+   yields NO runs (so the grouped catch-up dialog has nothing to show — only
+   the present-tense ping appears), and once morning mode ends the normal
+   gaps come back as grouped runs. */
+
+test('interplay: morning mode → groupGapRuns(gapSlots(now)) is [] (no catch-up runs for the night)', () => {
+  S.state.blocks = [slot(7, 23, 0)];
+  assert.equal(B.morningMode(d(8, 9, 30)), true);
+  assert.deepEqual(B.groupGapRuns(B.gapSlots(d(8, 9, 30))), []);
+});
+
+test('interplay: after the first morning block, daytime gaps group into ONE contiguous run', () => {
+  // morning mode ended by the 09:30 block; next tick at 11:00 → gaps 09:45..10:45
+  S.state.blocks = [slot(7, 23, 0), slot(8, 9, 30)];
+  assert.equal(B.morningMode(d(8, 11, 0)), false);
+  const runs = B.groupGapRuns(B.gapSlots(d(8, 11, 0)));
+  assert.equal(runs.length, 1);
+  assert.equal(iso(runs[0].start), iso(d(8, 9, 45)));
+  assert.equal(iso(runs[0].end), iso(d(8, 11, 0)));
+  assert.equal(runs[0].slots.length, 5); // 09:45, 10:00, 10:15, 10:30, 10:45
+});
+
+test('interplay: before 06:00 the night gap stays a normal grouped run (no morning suppression)', () => {
+  S.state.blocks = [slot(7, 23, 0)];
+  const runs = B.groupGapRuns(B.gapSlots(d(8, 5, 30)));
+  // 2h cap → 03:30..05:15, contiguous → exactly one run
+  assert.equal(runs.length, 1);
+  assert.equal(iso(runs[0].start), iso(d(8, 3, 30)));
+  assert.equal(iso(runs[0].end), iso(d(8, 5, 30)));
+  assert.equal(runs[0].slots.length, 8);
+});
