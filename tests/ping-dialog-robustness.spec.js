@@ -74,8 +74,9 @@ test('M3: typed catch-up text survives a tab return', async ({ page }) => {
 test('M4: a ping never stacks on top of an open edit dialog — it is deferred', async ({ page }) => {
   await seedGaps(page);
   await expect(page.locator('#pingScrim.show')).toBeVisible();
-  // Dismiss WITHOUT saving ("Alle leer lassen") — the gaps stay open.
-  await page.locator('#pingFoot .btn.ghost').click();
+  // Dismiss WITHOUT answering (Esc) — the gaps stay open. ("Alle leer lassen"
+  // would no longer work here: since M2 it IS an answer and persists skips.)
+  await page.keyboard.press('Escape');
   await expect(page.locator('#pingScrim.show')).toHaveCount(0);
 
   // Open the edit dialog on the seeded past block.

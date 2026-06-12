@@ -47,7 +47,9 @@ test('C1: an entry logged in tab A survives a saving action in tab B', async ({ 
   // Tab A: log the current slot.
   await tabA.click('#logNowBtn');
   await expect(tabA.locator('#pingScrim.show')).toHaveCount(1);
-  await tabA.locator('#pingScrim #pingBody input.txt').fill('Crosstab-Eintrag');
+  // .first(): the M7 range disclosure added Datum/Von/Bis .txt inputs to the
+  // manual dialog — the label field is the first one.
+  await tabA.locator('#pingScrim #pingBody input.txt').first().fill('Crosstab-Eintrag');
   await tabA.locator('#pingScrim #pingFoot button.amber').click();
   await expect(tabA.locator('#cal .block .lbl', { hasText: 'Crosstab-Eintrag' })).toHaveCount(1);
 
