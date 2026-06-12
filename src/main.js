@@ -20,7 +20,7 @@ import {
 } from './state.js';
 import {
   uid, bumpRecent, clearRange,
-  beat, gapSlots,
+  beat, gapSlots, morningMode,
 } from './blocks.js';
 import { $ } from './ui/dom.js';
 import { toast, notify, beep } from './ui/notify.js';
@@ -30,7 +30,7 @@ import {
 } from './ui/calendar.js';
 import {
   openScrim, closeScrim, close, openScrims,
-  openEdit, openLogNow, openPing,
+  openEdit, openLogNow, openMorningPing, openPing,
 } from './ui/dialogs.js';
 import { attachDrag } from './ui/drag.js';
 
@@ -243,17 +243,30 @@ function scheduleTick(){
   const ms=nextBoundary(new Date()).getTime()-Date.now()+200;
   setTimeout(()=>{ onBoundary(); scheduleTick(); }, Math.max(ms,500));
 }
+/* Single entry point for all three ping triggers (boundary tick, tab return,
+   initial load). Morgen-Modus (see morningMode in blocks.js): after a night
+   without logging there is nothing worth back-filling — gapSlots() already
+   reports no gaps, and instead of the retro catch-up we ask only about the
+   CURRENT slot in present tense. `loud` adds beep+notification (boundary
+   tick only, matching the previous behaviour of the three call sites). */
+function pingOpenSlots(loud){
+  if($("intro").classList.contains("show")) return;
+  if(morningMode()){
+    if(loud){ if(state.settings.soundOn) beep(); notify(1); }
+    openMorningPing();
+    return;
+  }
+  const gaps=gapSlots();
+  if(!gaps.length) return;
+  if(loud){ if(state.settings.soundOn) beep(); notify(gaps.length); }
+  openPing(true);
+}
 function onBoundary(){
   // Defer the whole boundary tick (render + catch-up ping) until any in-progress
   // drag releases, so the gesture isn't torn down mid-flight.
   if(gestureInFlight()){ setTimeout(onBoundary,250); return; }
   lastFired=floorSlot(new Date()).getTime();
-  const gaps=gapSlots();
-  if(gaps.length && !$("intro").classList.contains("show")){
-    if(state.settings.soundOn) beep();
-    notify(gaps.length);
-    openPing(true);
-  }
+  pingOpenSlots(true);
   refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
 }
@@ -609,7 +622,7 @@ document.querySelectorAll(".scrim").forEach(s=>{
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ openScrims().forEach(s=>closeScrim(s.id)); closeMenu(); if($("intro").classList.contains("show")) dismissIntro(); } });
 
 // returning to tab → catch up
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ recordBeat(); refreshExportReminder(); render(); pingOpenSlots(false); } });
 window.addEventListener("focus",recordBeat);
 
 /* heartbeat: stamp the current slot while the tab is visible.
@@ -644,6 +657,6 @@ function boot(){
   const action=new URLSearchParams(location.search).get("action");
   if(action==="log"){ setTimeout(openLogNow,350); }
   else if(action==="export"){ setTimeout(()=>{ updateExpCount(); openScrim("exportScrim"); },350); }
-  else { setTimeout(()=>{ if(!$("intro").classList.contains("show") && gapSlots().length) openPing(true); }, 900); }  // initial catch-up
+  else { setTimeout(()=>pingOpenSlots(false), 900); }  // initial catch-up
 }
 boot();

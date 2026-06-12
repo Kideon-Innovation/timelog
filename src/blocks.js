@@ -19,7 +19,7 @@
 //     the same 1-arg signature the inline originals had.
 
 import {
-  state, save, PALETTE, CATCHUP_CAP_MS, getSlotMin,
+  state, save, PALETTE, CATCHUP_CAP_MS, MORNING_BOUNDARY_HOUR, getSlotMin,
 } from './state.js';
 import {
   iso, sameDay, minOfDay,
@@ -187,14 +187,39 @@ export function beat(){
   return !had;
 }
 
+/* ---------- Morgen-Modus ----------
+   After a night without logging, retro gap questions are pointless — the user
+   was asleep, not forgetting to log. Morning mode is active iff ALL hold:
+     1. the latest logged block ended AT or BEFORE today 06:00 local,
+     2. `now` is strictly AFTER today 06:00 local,
+     3. no block starts at/after today 06:00 local (the first morning entry
+        ends morning mode, restoring normal catch-up behaviour).
+   While active, gapSlots() reports nothing (the night stays empty — no
+   auto-fill, no "Schlaf" block) and main.js opens the present-tense dialog
+   for the CURRENT slot instead. `now` is injectable for deterministic tests. */
+export function morningMode(now = new Date()){
+  if(!state.blocks.length) return false;            // first-time user: unchanged
+  const boundary = new Date(now); boundary.setHours(MORNING_BOUNDARY_HOUR, 0, 0, 0);
+  if(now.getTime() <= boundary.getTime()) return false;  // night shift before 06:00 → normal
+  let lastEnd = -Infinity;
+  for(const b of state.blocks){
+    if(new Date(b.start).getTime() >= boundary.getTime()) return false; // morning block exists
+    const e = new Date(b.end).getTime();
+    if(e > lastEnd) lastEnd = e;
+  }
+  return lastEnd <= boundary.getTime();             // last block ended at/before 06:00
+}
+
 /* gaps: unfilled past slots within CATCHUP_CAP_MS, oldest-first */
-export function gapSlots(){
+export function gapSlots(now = new Date()){
   // Erstnutzer ohne jegliche Tracking-Historie haben keine echte Lücke zum
   // Nachtragen — der Backfill-Dialog soll erst erscheinen, sobald schon mind.
   // ein Eintrag existiert. Ohne diesen Guard würde der gesamte 2h-Zeitraum als
   // Lücke gewertet und ein Neunutzer mit dem Catchup-Dialog konfrontiert.
   if(!state.blocks.length) return [];
-  const now=new Date(), out=[];
+  // Morgen-Modus: the gap spans last night — suppress retro questions entirely.
+  if(morningMode(now)) return [];
+  const out=[];
   let s=floorSlot(new Date(now.getTime()-CATCHUP_CAP_MS));
   const liveEnd=floorSlot(now);   // current (ongoing) slot start = not yet ended
   let lastEnd=null;
@@ -210,6 +235,22 @@ export function gapSlots(){
     if(!blockAt(t)) out.push(new Date(t));
   }
   return out;
+}
+
+/* group gap slot-starts (as returned by gapSlots, oldest-first) into runs of
+   CONTIGUOUS slots. The catch-up dialog shows one input per run instead of one
+   per slot, so a 1h hole is a single "12:00–13:00" entry. Pure: in → out, no
+   state mutation. Each run carries { start, end, slots } with end = the last
+   slot's end, mirroring mergeRuns' shape for blocks. */
+export function groupGapRuns(slots){
+  const step=getSlotMin()*60000, runs=[];
+  for(const slot of slots){
+    const last=runs[runs.length-1];
+    if(last && slot.getTime()===last.end.getTime()){
+      last.end=new Date(slot.getTime()+step); last.slots.push(slot);
+    } else runs.push({start:slot,end:new Date(slot.getTime()+step),slots:[slot]});
+  }
+  return runs;
 }
 
 /* heartbeat slots for one day → merged [startMin,endMin) runs.
