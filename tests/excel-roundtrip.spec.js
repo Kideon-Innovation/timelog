@@ -75,7 +75,14 @@ test('Excel export → import round-trip restores all blocks (incl. midnight wra
   // Open a SECOND page in the same context that seeds an EMPTY store before the
   // app boots (its own init script wins; the first page's seed does not apply
   // here). This proves import repopulates from nothing.
+  //
+  // The exporting page must be CLOSED first: since the cross-tab storage
+  // protection (QA C1), a still-open instance treats an external wipe of
+  // timelog.v1 (page2's empty init seed carries no savedAt stamp) as an
+  // untrusted deletion and writes its blocks back — by design, two open
+  // instances can never lose blocks. Import-into-empty needs a lone tab.
   const context = page.context();
+  await page.close();
   const page2 = await context.newPage();
   page2.on('pageerror', (e) => errors.push(String(e)));
   await page2.addInitScript(() => {

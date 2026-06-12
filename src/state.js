@@ -60,24 +60,154 @@ function defaultSettings(slotMin) {
   };
 }
 
-function loadState(slotMin) {
+/* Parse one raw localStorage payload into a normalized {blocks, recentLabels,
+   settings, savedAt} bundle, or null when missing/corrupt. `savedAt` is the
+   writer's Date.now() stamp (undefined for legacy payloads) — see save(). */
+function parseRaw(raw, slotMin) {
   try {
-    const s = JSON.parse(localStorage.getItem(KEY));
+    const s = JSON.parse(raw);
     if (s && s.blocks) {
-      return Object.assign({ blocks: [], recentLabels: [], settings: {} }, s,
-        { settings: Object.assign(defaultSettings(slotMin), s.settings || {}) });
+      return {
+        blocks: s.blocks,
+        recentLabels: s.recentLabels || [],
+        settings: Object.assign(defaultSettings(slotMin), s.settings || {}),
+        savedAt: Number.isFinite(s.savedAt) ? s.savedAt : undefined,
+      };
     }
   } catch (e) { /* corrupt storage → fall through to a fresh default state */ }
-  return { blocks: [], recentLabels: [], settings: defaultSettings(slotMin) };
+  return null;
 }
 
 // Initial load. SLOT_MIN starts at 15 (the default block size) and is then
 // reconciled with the persisted setting below — identical to the old inline
 // sequence in main.js.
-export const state = loadState(15);
+const _loaded = parseRaw(localStorage.getItem(KEY), 15);
+export const state = _loaded
+  ? { blocks: _loaded.blocks, recentLabels: _loaded.recentLabels, settings: _loaded.settings }
+  : { blocks: [], recentLabels: [], settings: defaultSettings(15) };
 
-/** Persist the current state object to localStorage. */
-export function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+/* ---------- multi-tab-safe persistence ----------
+   Two open instances (PWA window + browser tab) share timelog.v1. A blind
+   "write the whole in-memory state" is last-write-wins: the stale tab's next
+   save would silently drop everything the other tab logged. Instead:
+
+     * save() re-reads localStorage SYNCHRONOUSLY first. If another tab wrote
+       since our last sync, its payload is three-way-merged (base = our last
+       synced snapshot, mine = in-memory, theirs = storage) at slot level
+       BEFORE we write. Because every writer does this, each write descends
+       from the previous one — writes form a linear history and nothing is
+       ever clobbered, even when the async `storage` event hasn't arrived yet.
+     * initCrossTabSync() additionally listens for the `storage` event so the
+       OTHER tab's UI updates promptly (re-render via the callback).
+     * Deletions only propagate when `theirs` is provably newer than our base
+       (savedAt stamp); otherwise the merge is purely additive — the failure
+       mode is a resurrected block, never a lost one. */
+
+let _synced = localStorage.getItem(KEY);   // raw string we last read/wrote
+let _base = snapshot(state);               // parsed content at that point
+let _baseSavedAt = _loaded?.savedAt || 0;
+
+function snapshot(s) {
+  return JSON.parse(JSON.stringify({ blocks: s.blocks, recentLabels: s.recentLabels, settings: s.settings }));
+}
+function contentStr(s) {
+  return JSON.stringify({ blocks: s.blocks, recentLabels: s.recentLabels, settings: s.settings });
+}
+function absorb(m) { state.blocks = m.blocks; state.recentLabels = m.recentLabels; state.settings = m.settings; }
+
+/** Pure three-way merge of two divergent states over a common base.
+    Blocks are keyed by their slot start time; per slot, a side that changed
+    it (vs base) wins, with `mine` winning a direct conflict (we are the
+    active writer). A slot missing from `theirs` is only treated as a
+    deletion when trustTheirsDeletes is set — otherwise kept (additive). */
+export function mergeStates(base, mine, theirs, trustTheirsDeletes = true) {
+  const mapOf = (blocks) => { const m = new Map(); for (const b of blocks || []) m.set(new Date(b.start).getTime(), b); return m; };
+  const bm = mapOf(base.blocks), mm = mapOf(mine.blocks), tm = mapOf(theirs.blocks);
+  const eq = (a, b) => a === b ||
+    (!!a && !!b && a.label === b.label && new Date(a.end).getTime() === new Date(b.end).getTime());
+  const blocks = [];
+  for (const k of new Set([...bm.keys(), ...mm.keys(), ...tm.keys()])) {
+    const b = bm.get(k), m = mm.get(k), t = tm.get(k);
+    let pick;
+    if (!eq(m, b)) pick = m;                       // we changed/added/deleted it → ours wins
+    else if (tm.has(k)) pick = t;                   // theirs (changed or unchanged)
+    else pick = trustTheirsDeletes ? undefined : m; // absent in theirs: delete vs. keep
+    if (pick) blocks.push(pick);
+  }
+  blocks.sort((a, b) => new Date(a.start) - new Date(b.start));
+  // recentLabels: the side that changed them leads, the other fills up.
+  const mineChanged = JSON.stringify(mine.recentLabels) !== JSON.stringify(base.recentLabels);
+  const lead = (mineChanged ? mine.recentLabels : theirs.recentLabels) || [];
+  const tail = (mineChanged ? theirs.recentLabels : mine.recentLabels) || [];
+  const recentLabels = [...new Set([...lead, ...tail])].slice(0, 12);
+  // settings: per key — our local change wins, otherwise theirs.
+  const settings = {};
+  const bs = base.settings || {}, ms = mine.settings || {}, ts = theirs.settings || {};
+  for (const k of new Set([...Object.keys(bs), ...Object.keys(ms), ...Object.keys(ts)])) {
+    settings[k] = (ms[k] !== bs[k]) ? ms[k] : (k in ts ? ts[k] : ms[k]);
+  }
+  return { blocks, recentLabels, settings };
+}
+
+let _onSaveError = null;
+/** Register the one handler invoked when persisting fails (e.g. quota
+    exceeded) — main.js wires this to a visible "export your data!" toast. */
+export function onSaveError(cb) { _onSaveError = cb; }
+
+/** Persist the current state object to localStorage — multi-tab-safe (merges
+    any concurrent write from another tab first) and guarded: a failed write
+    (QuotaExceededError, private mode, …) never throws into the caller; it
+    reports through onSaveError instead so the UI can warn the user. */
+export function save() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw !== null && raw !== _synced) {
+      const theirs = parseRaw(raw, state.settings.intervalMin || 15);
+      if (theirs) {
+        absorb(mergeStates(_base, state, theirs,
+          Number.isFinite(theirs.savedAt) && theirs.savedAt >= _baseSavedAt));
+      }
+    }
+    const savedAt = Date.now();
+    const out = JSON.stringify({
+      blocks: state.blocks, recentLabels: state.recentLabels, settings: state.settings, savedAt,
+    });
+    localStorage.setItem(KEY, out);
+    _synced = out; _base = snapshot(state); _baseSavedAt = savedAt;
+  } catch (e) {
+    if (_onSaveError) _onSaveError(e);
+  }
+}
+
+/** Pull another tab's write into memory (merge, never clobber). Reads the
+    CURRENT storage content (not the event payload — queued stale events thus
+    collapse into one up-to-date sync). Returns true iff memory changed. */
+export function syncFromStorage() {
+  const raw = localStorage.getItem(KEY);
+  if (raw === null || raw === _synced) return false;   // our own write was last
+  const theirs = parseRaw(raw, state.settings.intervalMin || 15);
+  if (!theirs) return false;
+  const before = contentStr(state);
+  absorb(mergeStates(_base, state, theirs,
+    Number.isFinite(theirs.savedAt) && theirs.savedAt >= _baseSavedAt));
+  _synced = raw;
+  _base = snapshot(theirs);
+  _baseSavedAt = Math.max(_baseSavedAt, theirs.savedAt || 0);
+  // If the merge kept local data `theirs` lacks (exotic write race), write the
+  // union back so both tabs converge on it.
+  if (contentStr(state) !== contentStr(theirs)) save();
+  return contentStr(state) !== before;
+}
+
+/** Wire the cross-tab `storage` listener (browser only — called from main.js
+    so this module stays loadable in Node tests). onExternalChange fires after
+    another tab's write has been merged into memory; re-render there. */
+export function initCrossTabSync(onExternalChange) {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY) return;
+    if (syncFromStorage() && onExternalChange) onExternalChange();
+  });
+}
 
 /* ---------- reassigned runtime values (accessor-gated) ---------- */
 
