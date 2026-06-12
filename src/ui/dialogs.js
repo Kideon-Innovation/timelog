@@ -31,6 +31,7 @@ import { hhmm, fmtDur, floorSlot as floorSlotMin } from '../time.js';
 import { state, getSlotMin, DOW, MON } from '../state.js';
 import {
   colorFor, setBlock, blocksInRange, fillRange, lastLabel, gapSlots, groupGapRuns,
+  markSkipped,
 } from '../blocks.js';
 import { $ } from './dom.js';
 import { toast } from './notify.js';
@@ -77,7 +78,10 @@ function openSinglePing(slot){
   inp.className="txt"; inp.setAttribute("autocomplete","off");
   inp.placeholder="Stichwort … z. B. Meeting, Doku, Telefonat";
   body.appendChild(inp);
-  const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
+  // Leaving the slot empty is an ANSWER ("Nicht am PC") — persist it so the
+  // same slot isn't re-asked at every following boundary (M2).
+  const commit=v=>{ setBlock(slot,v); if(!v.trim()) markSkipped([slot]);
+    closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
   body.appendChild(recentChips(v=>commit(v),null));
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter") commit(inp.value); });
 
@@ -163,7 +167,10 @@ function openCatchup(gaps){
 
   const foot=$("pingFoot"); foot.innerHTML="";
   const skipAll=document.createElement("button"); skipAll.className="btn ghost";
-  skipAll.textContent="Alle leer lassen"; skipAll.onclick=()=>{ closePing(); };
+  // "Alle leer lassen" is an answer for EVERY shown gap slot — persist the
+  // skips so the same gaps don't ping again at the next boundary (M2).
+  skipAll.textContent="Alle leer lassen";
+  skipAll.onclick=()=>{ markSkipped(gaps); closePing(); toast("Leer gelassen"); };
   const sp=document.createElement("div"); sp.className="spacer";
   const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Speichern";
   // Save semantics (analogous to openEdit): the run's top input is the whole
@@ -171,6 +178,7 @@ function openCatchup(gaps){
   // user actually touched it — typed something or skipped it. A skipped run
   // (or empty top input with untouched rows) leaves its slots unlogged.
   ok.onclick=()=>{
+    const leftEmpty=[];
     groups.forEach(g=>{
       g.run.slots.forEach((slot,i)=>{
         let v="";
@@ -180,8 +188,12 @@ function openCatchup(gaps){
           v=touched?sr.inp.value:g.top.inp.value;
         }
         setBlock(slot,v);
+        if(!v.trim()) leftEmpty.push(slot);   // skipped run/slot or left blank
       });
     });
+    // Saving with a slot left empty is an answer too — persist it so the same
+    // slot doesn't re-ping at every following boundary (M2).
+    if(leftEmpty.length) markSkipped(leftEmpty);
     closePing(); render(); toast("Nachtrag gespeichert");
   };
   foot.append(skipAll,sp,ok);

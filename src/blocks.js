@@ -187,6 +187,33 @@ export function beat(){
   return !had;
 }
 
+/* ============================================================
+   DELIBERATELY-LEFT-EMPTY SLOTS — "leer lassen" must be remembered.
+   Skipping a slot ("Nicht am PC", run-✕/slot-✕, "Alle leer lassen") creates
+   no block, so gapSlots() used to re-report it as a gap on every boundary —
+   beep + dialog every 15 min for a slot the user already answered. We persist
+   those slot starts (ISO strings) under their own localStorage key, mirroring
+   the heartbeat store: kept OUT of timelog.v1 so they can never leak into the
+   Excel export or the calendar, pruned after a day (the catch-up window only
+   looks back CATCHUP_CAP_MS anyway). Re-read from storage on every gapSlots()
+   call so a skip in one tab silences the ping in another.
+   ============================================================ */
+const SKIP_KEY = "timelog.skipped.v1";
+const SKIP_RETENTION_MS = 24*3600000;
+function loadSkipped(){
+  try{ const a=JSON.parse(localStorage.getItem(SKIP_KEY)); if(Array.isArray(a)) return new Set(a); }catch(e){}
+  return new Set();
+}
+/* mark slot starts as deliberately empty; merges with what's stored (additive,
+   so concurrent tabs can't drop each other's marks) and prunes stale entries */
+export function markSkipped(slots, now=new Date()){
+  const skipped=loadSkipped();
+  for(const s of slots) skipped.add(iso(s));
+  const cutoff=now.getTime()-SKIP_RETENTION_MS;
+  for(const s of skipped){ if(new Date(s).getTime()<cutoff) skipped.delete(s); }
+  try{ localStorage.setItem(SKIP_KEY, JSON.stringify([...skipped])); }catch(e){}
+}
+
 /* ---------- Morgen-Modus ----------
    After a night without logging, retro gap questions are pointless — the user
    was asleep, not forgetting to log. Morning mode is active iff ALL hold:
@@ -219,6 +246,7 @@ export function gapSlots(now = new Date()){
   if(!state.blocks.length) return [];
   // Morgen-Modus: the gap spans last night — suppress retro questions entirely.
   if(morningMode(now)) return [];
+  const skipped=loadSkipped();   // deliberately-left-empty slots are not gaps
   const out=[];
   let s=floorSlot(new Date(now.getTime()-CATCHUP_CAP_MS));
   const liveEnd=floorSlot(now);   // current (ongoing) slot start = not yet ended
@@ -232,7 +260,7 @@ export function gapSlots(now = new Date()){
     if(fe.getTime()>s.getTime()) s=fe;
   }
   for(let t=s; t.getTime()<liveEnd.getTime(); t=new Date(t.getTime()+getSlotMin()*60000)){
-    if(!blockAt(t)) out.push(new Date(t));
+    if(!blockAt(t) && !skipped.has(iso(t))) out.push(new Date(t));
   }
   return out;
 }
