@@ -75,6 +75,26 @@ export function fmtDur(min) {
   return h ? (h + 'h' + (m ? ' ' + m + 'm' : '')) : (m + 'm');
 }
 
+/** Parse the manual-entry Datum/Von/Bis fields into a slot-aligned local
+ *  [start, end) range, or null when the input is unusable. Snapping mirrors
+ *  the Excel import: floor the start, ceil the end to the slotMin grid (an
+ *  on-grid boundary stays put). "00:00" as Bis means midnight at the END of
+ *  the chosen day; any other Bis <= Von is rejected rather than silently
+ *  wrapped, so a typo can't create a near-24h block. */
+export function rangeFromFields(dateStr, fromStr, toStr, slotMin) {
+  if (!dateStr || !fromStr || !toStr) return null;
+  const start = new Date(dateStr + 'T' + fromStr + ':00');
+  let end = new Date(dateStr + 'T' + toStr + ':00');
+  if (isNaN(start) || isNaN(end)) return null;
+  if (end.getTime() <= start.getTime()) {
+    if (toStr === '00:00') end = new Date(end.getTime() + 86400000);
+    else return null;
+  }
+  const s = floorSlot(start, slotMin);
+  const e = nextBoundary(new Date(end.getTime() - 1), slotMin); // ceil to grid
+  return e.getTime() > s.getTime() ? { start: s, end: e } : null;
+}
+
 /** Escape the 4 HTML-significant chars for safe innerHTML interpolation. */
 export function esc(s) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
