@@ -30,7 +30,7 @@
 import { hhmm, fmtDur, floorSlot as floorSlotMin } from '../time.js';
 import { state, getSlotMin, DOW, MON } from '../state.js';
 import {
-  colorFor, setBlock, blocksInRange, fillRange, lastLabel, gapSlots,
+  colorFor, setBlock, blocksInRange, fillRange, lastLabel, gapSlots, groupGapRuns,
 } from '../blocks.js';
 import { $ } from './dom.js';
 import { toast } from './notify.js';
@@ -92,22 +92,28 @@ function openSinglePing(slot){
 }
 
 function openCatchup(gaps){
-  $("pingKick").textContent="NACHZUTRAGEN · "+gaps.length+(gaps.length===1?" EINTRAG":" EINTRÄGE");
+  // Contiguous gap slots collapse into ONE group (run): a 1h hole is a single
+  // "12:00–13:00" entry with one input, not 4× the same word. Per-slot rows
+  // stay available behind an "Einzeln bearbeiten" disclosure, mirroring the
+  // edit dialog's split pattern.
+  const runs=groupGapRuns(gaps);
+  $("pingKick").textContent="NACHZUTRAGEN · "+runs.length+(runs.length===1?" LÜCKE":" LÜCKEN");
   $("pingTitle").textContent="Was war seit eben los?";
   $("pingSub").textContent="Lücken der letzten 2 Stunden. Leer lassen ist ok — du warst evtl. nicht am PC.";
   const body=$("pingBody"); body.innerHTML="";
-  const rows=gaps.map(slot=>{
-    const end=new Date(slot.getTime()+getSlotMin()*60000);
+
+  // One .gaprow with a reversible ✕: clicking toggles between active and "leer
+  // gelassen". Skipping remembers any text so it can be restored on undo.
+  // stash starts null so the initial setSkipped(false) never clobbers a value —
+  // same safe pattern as openEdit's per-slot rows (see setCleared there).
+  // Used for both the run's top row and the expanded per-slot rows.
+  const gapRow=(s,e,onToggle)=>{
     const row=document.createElement("div"); row.className="gaprow";
-    const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(slot)+"–"+hhmm(end);
+    const tg=document.createElement("span"); tg.className="tg"; tg.textContent=hhmm(s)+"–"+hhmm(e);
     const inp=document.createElement("input"); inp.setAttribute("autocomplete","off");
     inp.placeholder="Stichwort …";
-    const range="("+hhmm(slot)+"–"+hhmm(end)+")";
+    const range="("+hhmm(s)+"–"+hhmm(e)+")";
     const skip=document.createElement("button"); skip.type="button"; skip.className="skip";
-    // Reversible skip: clicking toggles the row between active and "leer gelassen".
-    // Skipping remembers any text so it can be restored on undo. stash starts
-    // null so the initial setSkipped(false) never clobbers a value — same safe
-    // pattern as openEdit's per-slot rows (see setCleared there).
     let stash=null;
     const setSkipped=on=>{
       if(on){ stash=inp.value; inp.value=""; inp.placeholder="leer gelassen"; }
@@ -118,16 +124,41 @@ function openCatchup(gaps){
       skip.title=on?"wieder eintragen "+range:"leer lassen "+range;
       skip.setAttribute("aria-label",(on?"Diesen Eintrag wieder aktivieren ":"Diesen Eintrag leer lassen ")+range);
       skip.setAttribute("aria-pressed",on?"true":"false");
+      if(onToggle) onToggle(on);
     };
     setSkipped(false);
     skip.onclick=()=>{ const willSkip=!row.classList.contains("done"); setSkipped(willSkip); if(!willSkip) inp.focus(); };
     row.append(tg,inp,skip);
-    body.appendChild(row);
-    return {slot,inp,row};
+    return {row,inp,skipped:()=>row.classList.contains("done")};
+  };
+
+  const groups=runs.map(run=>{
+    const wrap=document.createElement("div"); wrap.className="gaprun";
+    let split=null;
+    // Skipping the whole run hides (and collapses) the disclosure; undo brings
+    // it back with the per-slot rows' state intact.
+    const top=gapRow(run.start,run.end,on=>{
+      if(split){ split.open=false; split.style.display=on?"none":""; }
+    });
+    wrap.appendChild(top.row);
+    const slotRows=[];
+    if(run.slots.length>1){
+      split=document.createElement("details"); split.className="edit-split";
+      const sum=document.createElement("summary"); sum.textContent="Einzeln bearbeiten";
+      split.appendChild(sum);
+      run.slots.forEach(slot=>{
+        const sr=gapRow(slot,new Date(slot.getTime()+getSlotMin()*60000));
+        split.appendChild(sr.row);
+        slotRows.push(sr);
+      });
+      wrap.appendChild(split);
+    }
+    body.appendChild(wrap);
+    return {run,top,slotRows};
   });
-  rows[0].inp.focus();
-  // quick "all = X"
-  const quick=recentChips(v=>{ rows.forEach(r=>{ if(!r.row.classList.contains("done")) r.inp.value=v; }); },null);
+  groups[0].top.inp.focus();
+  // quick "all = X" — fills the run inputs; per-slot overrides still win on save
+  const quick=recentChips(v=>{ groups.forEach(g=>{ if(!g.top.skipped()) g.top.inp.value=v; }); },null);
   quick.style.marginTop="14px"; body.appendChild(quick);
 
   const foot=$("pingFoot"); foot.innerHTML="";
@@ -135,8 +166,24 @@ function openCatchup(gaps){
   skipAll.textContent="Alle leer lassen"; skipAll.onclick=()=>{ closePing(); };
   const sp=document.createElement("div"); sp.className="spacer";
   const ok=document.createElement("button"); ok.className="btn amber"; ok.textContent="Speichern";
-  ok.onclick=()=>{ rows.forEach(r=>setBlock(r.slot,r.inp.value)); closePing(); render();
-    toast("Nachtrag gespeichert"); };
+  // Save semantics (analogous to openEdit): the run's top input is the whole
+  // gap, so it fills every slot by default. A per-slot row only wins where the
+  // user actually touched it — typed something or skipped it. A skipped run
+  // (or empty top input with untouched rows) leaves its slots unlogged.
+  ok.onclick=()=>{
+    groups.forEach(g=>{
+      g.run.slots.forEach((slot,i)=>{
+        let v="";
+        if(!g.top.skipped()){
+          const sr=g.slotRows[i];
+          const touched=sr && (sr.inp.value!=="" || sr.skipped());
+          v=touched?sr.inp.value:g.top.inp.value;
+        }
+        setBlock(slot,v);
+      });
+    });
+    closePing(); render(); toast("Nachtrag gespeichert");
+  };
   foot.append(skipAll,sp,ok);
 }
 

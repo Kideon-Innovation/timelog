@@ -237,6 +237,22 @@ export function gapSlots(now = new Date()){
   return out;
 }
 
+/* group gap slot-starts (as returned by gapSlots, oldest-first) into runs of
+   CONTIGUOUS slots. The catch-up dialog shows one input per run instead of one
+   per slot, so a 1h hole is a single "12:00–13:00" entry. Pure: in → out, no
+   state mutation. Each run carries { start, end, slots } with end = the last
+   slot's end, mirroring mergeRuns' shape for blocks. */
+export function groupGapRuns(slots){
+  const step=getSlotMin()*60000, runs=[];
+  for(const slot of slots){
+    const last=runs[runs.length-1];
+    if(last && slot.getTime()===last.end.getTime()){
+      last.end=new Date(slot.getTime()+step); last.slots.push(slot);
+    } else runs.push({start:slot,end:new Date(slot.getTime()+step),slots:[slot]});
+  }
+  return runs;
+}
+
 /* heartbeat slots for one day → merged [startMin,endMin) runs.
    Each beat covers SLOT_MIN minutes; touching/overlapping beats merge. */
 export function beatRuns(day){

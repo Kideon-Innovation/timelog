@@ -176,6 +176,53 @@ test('gapSlots returns [] for a fresh user with no blocks', () => {
   assert.deepEqual(B.gapSlots(), []);
 });
 
+test('groupGapRuns returns [] for no slots', () => {
+  resetState();
+  assert.deepEqual(B.groupGapRuns([]), []);
+});
+
+test('groupGapRuns wraps a single slot into one run spanning one slot', () => {
+  resetState();
+  const runs = B.groupGapRuns([at(9)]);
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].start.getTime(), at(9).getTime());
+  assert.equal(runs[0].end.getTime(), at(9, 15).getTime());
+  assert.equal(runs[0].slots.length, 1);
+});
+
+test('groupGapRuns merges contiguous slots into one run', () => {
+  resetState();
+  const runs = B.groupGapRuns([at(12), at(12, 15), at(12, 30), at(12, 45)]);
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].start.getTime(), at(12).getTime());
+  assert.equal(runs[0].end.getTime(), at(13).getTime()); // last slot + 15 min
+  assert.equal(runs[0].slots.length, 4);
+  assert.deepEqual(runs[0].slots.map((d) => d.getTime()),
+    [at(12), at(12, 15), at(12, 30), at(12, 45)].map((d) => d.getTime()));
+});
+
+test('groupGapRuns splits at non-contiguous slots into separate runs', () => {
+  resetState();
+  // 10:00–10:30 (2 slots) and 11:15–11:30 (1 slot) — the PO example
+  const runs = B.groupGapRuns([at(10), at(10, 15), at(11, 15)]);
+  assert.equal(runs.length, 2);
+  assert.equal(runs[0].start.getTime(), at(10).getTime());
+  assert.equal(runs[0].end.getTime(), at(10, 30).getTime());
+  assert.equal(runs[0].slots.length, 2);
+  assert.equal(runs[1].start.getTime(), at(11, 15).getTime());
+  assert.equal(runs[1].end.getTime(), at(11, 30).getTime());
+  assert.equal(runs[1].slots.length, 1);
+});
+
+test('groupGapRuns honours the active slot size for contiguity', () => {
+  resetState();
+  S.setSlotMin(30);
+  const runs = B.groupGapRuns([at(9), at(9, 30), at(10, 30)]);
+  assert.equal(runs.length, 2);
+  assert.equal(runs[0].end.getTime(), at(10).getTime()); // 2×30 min
+  assert.equal(runs[1].end.getTime(), at(11).getTime());
+});
+
 test('beat stamps a heartbeat once and beatRuns merges contiguous slots', () => {
   resetState();
   S.setSlotMin(15);
