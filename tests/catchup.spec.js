@@ -22,6 +22,11 @@ const SLOT = 15 * 60000;
 // (one run), independent of wall-clock time. boot() then auto-opens the
 // catch-up modal.
 async function seedAndOpenCatchup(page, gapSlotCount = 4) {
+  // Crossing a 15-min slot boundary mid-test would shift the live slot and
+  // break the count/offset assertions (5 gaps instead of 4). If we're within
+  // a few seconds of a boundary, sit it out first — rare, bounded wait.
+  const msLeftInSlot = SLOT - (Date.now() % SLOT);
+  if (msLeftInSlot < 10000) await new Promise((r) => setTimeout(r, msLeftInSlot + 200));
   await page.goto('./');
   await page.evaluate(({ KEY, gapSlotCount, SLOT }) => {
     const floor = (t) => { const d = new Date(t); d.setMinutes(Math.floor(d.getMinutes() / 15) * 15, 0, 0); return d; };
@@ -70,14 +75,17 @@ test.describe('grouped catch-up: one input per contiguous gap', () => {
     await expect(split).toHaveCount(1);
     await expect(split).not.toHaveAttribute('open', '');
     await expect(split.locator('summary')).toHaveText('Einzeln bearbeiten');
+    // PR/QA screenshots land in the gitignored test-results/, NOT in
+    // docs/screenshots/ — otherwise every local run dirties the committed,
+    // manually curated PNGs that the PR body embeds.
     if (testInfo.project.name === 'desktop') {
-      await page.screenshot({ path: 'docs/screenshots/catchup-grouped-collapsed.png' });
+      await page.screenshot({ path: 'test-results/catchup-grouped-collapsed.png' });
     }
     // expanding reveals one row per 15-min slot
     await split.locator('summary').click();
     await expect(split.locator('.gaprow')).toHaveCount(4);
     if (testInfo.project.name === 'desktop') {
-      await page.screenshot({ path: 'docs/screenshots/catchup-grouped-expanded.png' });
+      await page.screenshot({ path: 'test-results/catchup-grouped-expanded.png' });
     }
   });
 
