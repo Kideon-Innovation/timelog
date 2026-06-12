@@ -233,7 +233,6 @@ function applyImport(rows){
 /* ============================================================
    TIMER
    ============================================================ */
-let lastFired=floorSlot(new Date()).getTime();
 // A direct-manipulation gesture (move/resize/range-select) marks the body while
 // the pointer is held. A render() during that window rebuilds the calendar DOM
 // out from under the pointer, dropping the captured block and silently aborting
@@ -251,6 +250,13 @@ function scheduleTick(){
    tick only, matching the previous behaviour of the three call sites). */
 function pingOpenSlots(loud){
   if($("intro").classList.contains("show")) return;
+  // Never (re)build the ping while ANY dialog is up. If the open dialog IS the
+  // ping itself, rebuilding would wipe text the user is typing (M3); if it's
+  // another dialog (edit/export/…), the ping would stack on top of it and
+  // break focus + Esc (M4). The gaps aren't lost: a deferred boundary tick
+  // (see onBoundary) re-pings right after the dialog closes, and the next
+  // tab return / boundary covers the rest.
+  if(openScrims().length) return;
   if(morningMode()){
     if(loud){ if(state.settings.soundOn) beep(); notify(1); }
     openMorningPing();
@@ -263,9 +269,11 @@ function pingOpenSlots(loud){
 }
 function onBoundary(){
   // Defer the whole boundary tick (render + catch-up ping) until any in-progress
-  // drag releases, so the gesture isn't torn down mid-flight.
-  if(gestureInFlight()){ setTimeout(onBoundary,250); return; }
-  lastFired=floorSlot(new Date()).getTime();
+  // drag releases (a render would tear the gesture down mid-flight) AND until
+  // any open dialog closes — so the tick neither rebuilds an open catch-up
+  // (M3, typed text) nor stacks a ping over another modal (M4), and the ping
+  // fires promptly once the dialog is dismissed.
+  if(gestureInFlight() || openScrims().length){ setTimeout(onBoundary,250); return; }
   pingOpenSlots(true);
   refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
@@ -537,7 +545,6 @@ function initInterval(){
   sel.onchange=()=>{
     setSlotMin(parseInt(sel.value,10));
     state.settings.intervalMin=getSlotMin(); save();
-    lastFired=floorSlot(new Date()).getTime();
     render(); updateCountdown();
     toast("Blockgröße: "+getSlotMin()+" min");
   };

@@ -58,7 +58,9 @@ test('log-now: committing a label paints a block that PERSISTS across reload', a
   await expect(page.locator('#pingScrim.show')).toHaveCount(1);
 
   const label = 'Persist-Test-' + Date.now();
-  const input = page.locator('#pingScrim #pingBody input.txt');
+  // .first(): the label input — the manual dialog also carries the optional
+  // Datum/Von/Bis fields (M7) further down, which share the .txt styling.
+  const input = page.locator('#pingScrim #pingBody input.txt').first();
   await input.fill(label);
   // Commit via the primary "Eintragen" action in the modal footer.
   await page.locator('#pingScrim #pingFoot button.amber').click();

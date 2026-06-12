@@ -27,7 +27,7 @@
 //
 // Behaviour is identical to the inline originals — this is a pure move.
 
-import { hhmm, fmtDur, floorSlot as floorSlotMin } from '../time.js';
+import { hhmm, fmtDur, iso, floorSlot as floorSlotMin, rangeFromFields } from '../time.js';
 import { state, getSlotMin, DOW, MON } from '../state.js';
 import {
   colorFor, setBlock, blocksInRange, fillRange, lastLabel, gapSlots, groupGapRuns,
@@ -67,19 +67,66 @@ export function openPing(triggeredByTimer){
   openScrim("pingScrim");
 }
 
-function openSinglePing(slot){
+function openSinglePing(slot,opts={}){
   const end=new Date(slot.getTime()+getSlotMin()*60000);
-  $("pingKick").textContent="15-MINUTEN-PING";
+  const subFor=(s,e)=>hhmm(s)+" – "+hhmm(e)+" · "+DOW[s.getDay()]+" "+s.getDate()+". "+MON[s.getMonth()];
+  $("pingKick").textContent=getSlotMin()+"-MINUTEN-PING";
   $("pingTitle").textContent="Woran hast du gearbeitet?";
-  $("pingSub").textContent=hhmm(slot)+" – "+hhmm(end)+" · "+DOW[slot.getDay()]+" "+slot.getDate()+". "+MON[slot.getMonth()];
+  $("pingSub").textContent=subFor(slot,end);
   const body=$("pingBody"); body.innerHTML="";
   const inp=document.createElement("input");
   inp.className="txt"; inp.setAttribute("autocomplete","off");
   inp.placeholder="Stichwort … z. B. Meeting, Doku, Telefonat";
   body.appendChild(inp);
-  const commit=v=>{ setBlock(slot,v); closePing(); render(); toast(v?("Eingetragen: "+v):"Leer gelassen"); };
+
+  // M7 (WCAG 2.1.1): the manual "+ Jetzt eintragen" dialog optionally exposes
+  // Datum/Von/Bis behind a default-closed disclosure — the only keyboard path
+  // to log an ARBITRARY range (drag-to-select is pointer-only), and a handy
+  // backfill shortcut for mouse users too. Defaults = the current slot, so an
+  // untouched dialog behaves exactly as before. Edited ranges save via
+  // fillRange (the same op drag-to-select commits through). Gap pings and the
+  // Morgen-Modus ping never pass rangeEditable — they stay single-purpose.
+  let readRange=null, rangeDet=null;
+  if(opts.rangeEditable){
+    const det=document.createElement("details"); det.className="edit-split";
+    const sum=document.createElement("summary"); sum.textContent="Anderen Zeitraum eintragen";
+    det.appendChild(sum);
+    const field=(label,type,id,value)=>{
+      const wrap=document.createElement("div");
+      const fl=document.createElement("label"); fl.className="fl"; fl.textContent=label; fl.htmlFor=id;
+      const i=document.createElement("input"); i.type=type; i.className="txt"; i.id=id; i.value=value;
+      wrap.append(fl,i); return {wrap,i};
+    };
+    const d=field("Datum","date","pingDate",iso(slot).slice(0,10));
+    const f=field("Von","time","pingFrom",hhmm(slot));
+    const t=field("Bis","time","pingTo",hhmm(end));
+    const row1=document.createElement("div"); row1.className="row"; row1.appendChild(d.wrap);
+    const row2=document.createElement("div"); row2.className="row"; row2.append(f.wrap,t.wrap);
+    det.append(row1,row2);
+    rangeDet=det; // appended below, after the chips (same order as the edit dialog)
+    readRange=()=>rangeFromFields(d.i.value,f.i.value,t.i.value,getSlotMin());
+    // keep the header subtitle in sync with the chosen range
+    const upd=()=>{ const r=readRange(); if(r) $("pingSub").textContent=subFor(r.start,r.end); };
+    [d.i,f.i,t.i].forEach(i=>i.addEventListener("change",upd));
+  }
+
+  const commit=v=>{
+    if(readRange){
+      const r=readRange();
+      if(!r){ toast("Zeitraum prüfen — „Bis“ muss nach „Von“ liegen"); return; }
+      fillRange(r.start,r.end,v);
+    } else {
+      setBlock(slot,v);
+    }
+    closePing(); render(); toast(v.trim()?("Eingetragen: "+v):"Leer gelassen");
+  };
   body.appendChild(recentChips(v=>commit(v),null));
-  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") commit(inp.value); });
+  if(rangeDet) body.appendChild(rangeDet);
+  // preventDefault: commit() closes the dialog and restores focus to the
+  // opener button; without it Chromium delivers the Enter keydown's default
+  // activation click to that freshly-focused button — instantly reopening
+  // the dialog the user just committed (keyboard-only path).
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); commit(inp.value); } });
 
   const foot=$("pingFoot"); foot.innerHTML="";
   const skip=document.createElement("button"); skip.className="btn ghost";
@@ -156,7 +203,11 @@ function openCatchup(gaps){
     body.appendChild(wrap);
     return {run,top,slotRows};
   });
-  groups[0].top.inp.focus();
+  // Focus must wait until openScrim() (called by openPing right after this
+  // builder returns) has made the scrim visible — focus() on an element inside
+  // a display:none scrim is a silent no-op. Same 60ms pattern as the single
+  // ping / edit dialog.
+  setTimeout(()=>groups[0].top.inp.focus(),60);
   // quick "all = X" — fills the run inputs; per-slot overrides still win on save
   const quick=recentChips(v=>{ groups.forEach(g=>{ if(!g.top.skipped()) g.top.inp.value=v; }); },null);
   quick.style.marginTop="14px"; body.appendChild(quick);
@@ -207,7 +258,10 @@ export function openRangeEntry(s,e){
   const commit=v=>{ fillRange(s,e,v); closePing(); render();
     toast(v.trim()?("Eingetragen: "+v):"Bereich geleert"); };
   body.appendChild(recentChips(v=>commit(v)));
-  inp.addEventListener("keydown",ev=>{ if(ev.key==="Enter") commit(inp.value); });
+  // preventDefault: same Chromium quirk as the single ping — without it the
+  // Enter keydown's default activation click lands on whatever closeScrim
+  // restores focus to (here usually the #menuBtn fallback → menu pops open).
+  inp.addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); commit(inp.value); } });
   const foot=$("pingFoot"); foot.innerHTML="";
   // delete: double-confirm when the range actually contains blocks
   const del=document.createElement("button"); del.className="btn ghost";
@@ -227,15 +281,16 @@ export function openRangeEntry(s,e){
 /* Present-tense ping for the current (ongoing) slot — shared core for the
    manual "Jetzt eintragen" button and the Morgen-Modus ping. Only the kicker
    differs; question + slot logic stay identical so they can't drift apart. */
-function openCurrentSlotPing(kick){
-  openSinglePing(floorSlot(new Date()));
+function openCurrentSlotPing(kick,opts){
+  openSinglePing(floorSlot(new Date()),opts);
   openScrim("pingScrim");
   $("pingKick").textContent=kick;
   $("pingTitle").textContent="Woran arbeitest du gerade?";
 }
 export function openLogNow(){
-  // manual: log the current (ongoing) slot
-  openCurrentSlotPing("MANUELL EINTRAGEN");
+  // manual: log the current (ongoing) slot — with the optional Datum/Von/Bis
+  // disclosure for backfilling any range without a mouse (M7).
+  openCurrentSlotPing("MANUELL EINTRAGEN",{rangeEditable:true});
 }
 export function openMorningPing(){
   // Morgen-Modus (see morningMode in blocks.js): first ping after a night
@@ -331,7 +386,9 @@ $("editSave").onclick=()=>{
 $("editDel").onclick=()=>{ editing.blocks.forEach(b=>setBlock(new Date(b.start),""));
   close("editScrim"); render(); toast(editing.blocks.length>1?"Block gelöscht ("+editing.blocks.length+" Einträge)":"Block gelöscht"); };
 $("editCancel").onclick=()=>close("editScrim");
-$("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("editSave").click(); });
+// preventDefault for the same reason as the ping inputs: don't let the Enter
+// keydown's default activation click land on the focus-restored opener.
+$("editInput").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("editSave").click(); } });
 
 /* ============================================================
    CONFIRM — generic yes/no modal.
