@@ -82,9 +82,10 @@ export default defineConfig({
       includeAssets: ['icons/**/*'],
 
       workbox: {
-        // Precache the built app shell (HTML + hashed JS/CSS + icons) so the
-        // app boots fully offline — preserves the old sw.js offline behavior.
-        globPatterns: ['**/*.{html,js,css,png,svg,ico,webmanifest}'],
+        // Precache the built app shell (HTML + hashed JS/CSS + self-hosted
+        // woff2 fonts + icons) so the app boots fully offline — preserves the
+        // old sw.js offline behavior.
+        globPatterns: ['**/*.{html,js,css,woff2,png,svg,ico,webmanifest}'],
         // xlsx vendor bundle is ~930KB; raise the cap so it's precached too.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Take over immediately on update => no waiting SW, client reloads to new.
@@ -93,23 +94,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // SPA-style navigation fallback to the precached shell (works offline).
         navigateFallback: 'index.html',
-        // Runtime-cache Google Fonts so first-paint typography survives offline.
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-stylesheets' },
-          },
-          {
-            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-        ],
+        // No runtimeCaching: fonts are self-hosted (hashed assets, precached
+        // above) — the app makes zero requests to third-party origins.
       },
 
       devOptions: {

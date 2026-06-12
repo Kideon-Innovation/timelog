@@ -27,9 +27,9 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Fonts are self-hosted (src/fonts/ + src/fonts.css) — no Google-Fonts CDN,
+     so font loading never leaks the visitor's IP ("Deine Daten verlassen nie
+     dieses Gerät" holds from the very first request; LG München I, 3 O 17493/20). -->
 <!-- xlsx is a vendored UMD global (window.XLSX); served verbatim from public/, not bundled -->
 <script src="/vendor/xlsx.full.min.js"></script>
 <!-- App entry: imports the bundled stylesheet (src/style.css) + wires the
@@ -141,7 +141,7 @@
     <button class="btn" id="todayBtn">Heute</button>
     <button class="btn icon" id="nextBtn" title="Vor">▶</button>
     <span class="range" id="rangeLabel">—</span>
-    <input type="date" id="datePick">
+    <input type="date" id="datePick" aria-label="Datum wählen">
     <div class="legend" id="legend"></div>
   </div>
 
@@ -171,7 +171,7 @@
       <h2 id="editTime">—</h2>
     </div>
     <div class="modal-b">
-      <label class="fl">Tätigkeit <span id="editBulkHint" style="text-transform:none;letter-spacing:0;color:var(--text-faint)"></span></label>
+      <label class="fl" for="editInput">Tätigkeit <span id="editBulkHint" style="text-transform:none;letter-spacing:0;color:var(--text-faint)"></span></label>
       <input class="txt" id="editInput" autocomplete="off" placeholder="z. B. Meeting, Doku, Telefonat …">
       <div class="chips" id="editChips"></div>
       <details id="editSplit" class="edit-split">
@@ -198,16 +198,16 @@
     </div>
     <div class="modal-b">
       <div class="row">
-        <div><label class="fl">Von</label><input type="date" class="txt" id="expFrom"></div>
-        <div><label class="fl">Bis</label><input type="date" class="txt" id="expTo"></div>
+        <div><label class="fl" for="expFrom">Von</label><input type="date" class="txt" id="expFrom"></div>
+        <div><label class="fl" for="expTo">Bis</label><input type="date" class="txt" id="expTo"></div>
       </div>
       <p class="muted" id="expCount" style="margin-top:14px">—</p>
       <details id="datevDetails" style="margin-top:14px">
         <summary style="cursor:pointer">DATEV-Lohn-Export (für dein Lohnbüro)</summary>
         <p class="muted" style="margin-top:10px">Stunden pro Tag als DATEV-Lohn-CSV (Lohn und Gehalt). Personalnummer und Lohnart erfragst du bei deinem Lohnbüro.</p>
         <div class="row" style="margin-top:10px">
-          <div><label class="fl">Personalnummer</label><input type="text" inputmode="numeric" class="txt" id="datevPnr" placeholder="z.B. 1001"></div>
-          <div><label class="fl">Lohnart</label><input type="text" inputmode="numeric" class="txt" id="datevLa" placeholder="z.B. 100"></div>
+          <div><label class="fl" for="datevPnr">Personalnummer</label><input type="text" inputmode="numeric" class="txt" id="datevPnr" placeholder="z.B. 1001"></div>
+          <div><label class="fl" for="datevLa">Lohnart</label><input type="text" inputmode="numeric" class="txt" id="datevLa" placeholder="z.B. 100"></div>
         </div>
       </details>
     </div>

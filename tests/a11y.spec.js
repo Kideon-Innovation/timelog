@@ -168,6 +168,29 @@ test('intro overlay makes the app shell inert so focus cannot leak behind it', a
   expect(inertAfter).toBe(false);
 });
 
+test('form fields have programmatically associated labels', async ({ page }) => {
+  await seed(page);
+  await closeAnyModal(page);
+
+  // date picker in the subbar has no visible label → needs an aria-label
+  await expect(page.locator('#datePick')).toHaveAttribute('aria-label', /datum/i);
+
+  // export dialog: visible <label class="fl"> must be wired via for/id
+  await page.click('#menuBtn');
+  await page.click('#exportBtn');
+  await expect(page.locator('#exportScrim .modal')).toBeVisible();
+  for (const id of ['expFrom', 'expTo', 'datevPnr', 'datevLa']) {
+    await expect(page.locator(`label[for="${id}"]`)).toHaveCount(1);
+  }
+  await page.keyboard.press('Escape');
+
+  // edit dialog: "Tätigkeit" label must name the text input
+  const block = page.locator('#cal .block').first();
+  await block.click();
+  await expect(page.locator('#editScrim .modal')).toBeVisible();
+  await expect(page.locator('label[for="editInput"]')).toHaveCount(1);
+});
+
 test('catch-up skip control is a real, keyboard-focusable button', async ({ page }) => {
   await seed(page);
   // ensure the catch-up modal is open (there are gap slots since blocks are in the morning)
