@@ -36,7 +36,17 @@ async function seedAndOpenCatchup(page, gapSlotCount = 4) {
       end: new Date(start + SLOT).toISOString(), label,
     });
     localStorage.setItem(KEY, JSON.stringify({
-      blocks: [mk(cur - (gapSlotCount + 1) * SLOT, 'Mandant Müller')],
+      // The filler block ends `gapSlotCount` slots before now. Early in the
+      // morning (≈06:00–07:30 local) that end falls at/before 06:00, which
+      // would activate Morgen-Modus (see morningMode in src/blocks.js) and
+      // suppress the catch-up dialog entirely. The FUTURE anchor block defeats
+      // that deterministically (a block starting after today 06:00 ends
+      // morning mode) while staying invisible to gapSlots() — its end is past
+      // the live slot, so gap count and offsets are unchanged at any clock time.
+      blocks: [
+        mk(cur - (gapSlotCount + 1) * SLOT, 'Mandant Müller'),
+        mk(cur + 4 * SLOT, 'Mandant Müller'),
+      ],
       recentLabels: ['Mandant Müller', 'Doku', 'Mittag', 'Martens'],
       settings: { theme: 'light', introSeen: true, soundOn: true, notifyOn: false, intervalMin: 15 },
     }));
