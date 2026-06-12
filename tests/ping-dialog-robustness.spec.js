@@ -175,3 +175,60 @@ test('N2: the catch-up focuses its first gap input on open', async ({ page }) =>
   await expect(page.locator('#pingScrim.show')).toBeVisible();
   await expect(page.locator('#pingBody .gaprun .gaprow input').first()).toBeFocused();
 });
+
+test('M5: no modal-spam cascade — stacked boundary deferrals collapse into one', async ({ page }) => {
+  // Repro for the "modal spam" bug: while the catch-up sits open (i.e. the whole
+  // time the user is away from the tab), EVERY elapsed slot boundary used to
+  // spawn its OWN deferred-ping retry loop. After a long absence a pile of loops
+  // was queued and, on dialog-close, they cascaded — each dismissal instantly
+  // re-opened another ping. The fix keeps at most ONE retry pending, so a fresh
+  // ping only re-opens at the next real boundary, never as a self-feeding loop.
+  const slotMs = 6 * 60000;
+
+  // Fixed, off-boundary, post-06:00 instant so the run is wall-clock independent
+  // (same fake-clock approach as drag-resize-move.spec.js). 14:01Z = 1 min into
+  // a 6-min slot, so the first boundary tick lands 5 min in.
+  await page.clock.install({ time: new Date('2026-06-10T14:01:00Z') });
+  await page.goto('./');
+  await page.evaluate(({ KEY, slotMs }) => {
+    const floor = (t) => Math.floor(t / slotMs) * slotMs;
+    const cur = floor(Date.now());
+    const mk = (s, label) => ({
+      start: new Date(s).toISOString(), end: new Date(s + slotMs).toISOString(), label,
+    });
+    localStorage.setItem(KEY, JSON.stringify({
+      blocks: [
+        mk(cur - 5 * slotMs, 'Mandant Müller'), // past filler → opens a gap run
+        mk(cur + 4 * slotMs, 'Anker'),          // future anchor → defeats Morgen-Modus, no gaps
+      ],
+      recentLabels: ['Mandant Müller'],
+      settings: {
+        theme: 'light', introSeen: true, soundOn: false, notifyOn: false,
+        notifyNudgeDismissed: true, intervalMin: 6,
+      },
+    }));
+  }, { KEY, slotMs });
+  await page.reload();
+
+  // boot's initial catch-up timer (~900ms) → the catch-up opens.
+  await page.clock.runFor(1000);
+  await expect(page.locator('#pingScrim.show')).toBeVisible();
+
+  // Long absence: ~13 min (2 slot boundaries at 14:06 + 14:12) elapse with the
+  // catch-up still open. Pre-fix this queued one retry loop PER boundary.
+  await page.clock.runFor(13 * 60000);
+  await expect(page.locator('#pingScrim.show')).toBeVisible(); // body untouched (M3)
+
+  // Back at the tab — dismiss without answering (Esc leaves the gaps open).
+  await page.keyboard.press('Escape');
+  await page.clock.runFor(500);
+  // One legitimate re-open is expected (real gaps still remain) — dismiss it too.
+  if (await page.locator('#pingScrim.show').count()) await page.keyboard.press('Escape');
+  await expect(page.locator('#pingScrim.show')).toHaveCount(0);
+
+  // The bug: leftover stacked loops re-open a fresh ping on the NEXT close with
+  // no new boundary. With the fix nothing re-opens before the next real boundary
+  // (14:18) — and 2 more minutes (→ 14:16) stays well short of it.
+  await page.clock.runFor(2 * 60000);
+  await expect(page.locator('#pingScrim.show')).toHaveCount(0);
+});

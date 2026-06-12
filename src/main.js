@@ -236,13 +236,29 @@ function pingOpenSlots(loud){
   if(loud){ if(state.settings.soundOn) beep(); notify(gaps.length); }
   openPing(true);
 }
+// Guard so at most ONE deferred boundary retry is ever in flight. Without it
+// every boundary that elapses while a dialog is open (i.e. the whole time the
+// user is away from the tab) spawned its OWN 250ms retry loop; after a long
+// absence dozens of loops were polling at once, and on dialog-close they
+// cascaded — each dismissal instantly re-opened another ping ("modal spam").
+let _boundaryRetryPending=false;
 function onBoundary(){
   // Defer the whole boundary tick (render + catch-up ping) until any in-progress
   // drag releases (a render would tear the gesture down mid-flight) AND until
   // any open dialog closes — so the tick neither rebuilds an open catch-up
   // (M3, typed text) nor stacks a ping over another modal (M4), and the ping
   // fires promptly once the dialog is dismissed.
-  if(gestureInFlight() || openScrims().length){ setTimeout(onBoundary,250); return; }
+  if(gestureInFlight() || openScrims().length){
+    if(_boundaryRetryPending) return;   // a single retry is already queued
+    _boundaryRetryPending=true;
+    const retry=()=>{
+      if(gestureInFlight() || openScrims().length){ setTimeout(retry,250); return; }
+      _boundaryRetryPending=false;
+      onBoundary();
+    };
+    setTimeout(retry,250);
+    return;
+  }
   pingOpenSlots(true);
   refreshExportReminder();   // re-check within the existing cadence tick (covers day rollover)
   render();
