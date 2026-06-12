@@ -1,3 +1,6 @@
+  /* Self-hosted @font-face rules (privacy: no Google-Fonts CDN). */
+  @import './fonts.css';
+
   /* Kideon light theme — default. Off-White / Navy / Copper. */
   :root{
     --bg:#faf9f7;
@@ -19,8 +22,6 @@
     --accent-soft:rgba(196,154,108,.14);
     --on-accent:#0f2137;
     --now:#dc2626;
-    --hour:56px;        /* px per hour */
-    --slot:14px;        /* px per 15min (=hour/4) */
     --radius:10px;
     --shadow:0 12px 40px rgba(15,33,55,.08), 0 4px 12px rgba(15,33,55,.04);
     --glow:#ffffff;
@@ -30,6 +31,8 @@
     --scrim:rgba(15,33,55,.45);
     --btn-hover-bg:#f3f1ed;
     --btn-hover-line:#d8cdbb;
+    /* destructive (.del) hover — light red wash on the light theme */
+    --del-hover-bg:rgba(220,38,38,.08);
     color-scheme:light;
   }
   /* Kideon dark theme — navy-based, copper accent. */
@@ -56,6 +59,8 @@
     --scrim:rgba(6,12,20,.7);
     --btn-hover-bg:#234062;
     --btn-hover-line:#3a5d85;
+    /* destructive (.del) hover — dark red-brown, reads on navy */
+    --del-hover-bg:#2a1813;
     color-scheme:dark;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -424,8 +429,11 @@
   .toast-act:hover{background:var(--accent-soft)}
   .muted{color:var(--text-faint);font-size:12px}
   .muted.warn{color:var(--accent);font-weight:600}
-  .del{color:var(--now);background:transparent;border:1px solid var(--line)}
-  .del:hover{background:#2a1813}
+  /* Destructive buttons. `button.btn.del` (0-2-1) so the red wins against
+     `button.btn{color:var(--text)}` (0-1-1); the explicit :hover (0-3-1) beats
+     `button.btn:hover` and keeps the red + theme-aware tint on hover. */
+  button.btn.del{color:var(--now);background:transparent;border:1px solid var(--line)}
+  button.btn.del:hover{color:var(--now);background:var(--del-hover-bg);border-color:var(--now)}
   kbd{font-family:'JetBrains Mono';font-size:10px;background:var(--bg-sunken);border:1px solid var(--line);
     border-radius:4px;padding:1px 5px;color:var(--text-dim)}
 
